@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tick-stream.local/contracts/config.schema.json",
+  "title": "Tick Stream Configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gm", "feishu", "watchlist", "rules", "audit"],
+  "properties": {
+    "gm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token_env", "serv_addr", "strategy_id"],
+      "properties": {
+        "token_env": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable containing the GM token."
+        },
+        "serv_addr": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strategy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["live"],
+          "default": "live"
+        }
+      }
+    },
+    "feishu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app_id_env",
+        "app_secret_env",
+        "receive_id_type_env",
+        "receive_id_env",
+        "token_refresh_margin_seconds_env",
+        "max_attempts_env",
+        "retry_backoff_seconds_env"
+      ],
+      "properties": {
+        "app_id_env": {
+          "type": "string",
+          "minLength": 1
+        },
+        "app_secret_env": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receive_id_type_env": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable containing one of: chat_id, open_id, user_id, union_id, email."
+        },
+        "receive_id_env": {
+          "type": "string",
+          "minLength": 1
+        },
+        "token_refresh_margin_seconds_env": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable containing an integer >= 60."
+        },
+        "max_attempts_env": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable containing an integer between 1 and 10."
+        },
+        "retry_backoff_seconds_env": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Environment variable containing comma-separated non-negative second values, for example 1,5,30."
+        }
+      }
+    },
+    "watchlist": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "rule_profile": {
+            "type": "string",
+            "default": "default"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "price_window_seconds",
+          "price_return_threshold_pct",
+          "momentum_impulse_seconds",
+          "momentum_baseline_seconds",
+          "momentum_z_threshold",
+          "orderbook_window_seconds",
+          "orderbook_min_consecutive_ticks",
+          "orderbook_cancel_ratio_threshold",
+          "orderbook_imbalance_ratio_threshold",
+          "orderbook_standalone_min_severity",
+          "cooldown_seconds"
+        ],
+        "properties": {
+          "price_window_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 30
+          },
+          "price_return_threshold_pct": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "default": 1.5
+          },
+          "momentum_impulse_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 10
+          },
+          "momentum_baseline_seconds": {
+            "type": "integer",
+            "minimum": 2,
+            "default": 180
+          },
+          "momentum_z_threshold": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "default": 3.0
+          },
+          "orderbook_window_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 30
+          },
+          "orderbook_min_consecutive_ticks": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 2
+          },
+          "orderbook_cancel_ratio_threshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.35
+          },
+          "orderbook_imbalance_ratio_threshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.7
+          },
+          "orderbook_standalone_min_severity": {
+            "type": "string",
+            "enum": ["warning", "high", "critical"],
+            "default": "high"
+          },
+          "min_ticks_short_window": {
+            "type": "integer",
+            "minimum": 2,
+            "default": 3
+          },
+          "min_ticks_baseline_window": {
+            "type": "integer",
+            "minimum": 3,
+            "default": 20
+          },
+          "cooldown_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 180
+          },
+          "severity_thresholds": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["warning", "high", "critical"],
+            "properties": {
+              "warning": {
+                "$ref": "#/$defs/severityThreshold"
+              },
+              "high": {
+                "$ref": "#/$defs/severityThreshold"
+              },
+              "critical": {
+                "$ref": "#/$defs/severityThreshold"
+              }
+            }
+          },
+          "ignored_sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["start", "end"],
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                },
+                "end": {
+                  "type": "string",
+                  "pattern": "^\\d{2}:\\d{2}:\\d{2}$"
+                }
+              }
+            },
+            "default": []
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dir"],
+      "properties": {
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "write_tick_summaries": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "severityThreshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["price_return_pct", "momentum_z", "orderbook_cancel_ratio", "orderbook_imbalance_ratio"],
+      "properties": {
+        "price_return_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "momentum_z": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "orderbook_cancel_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "orderbook_imbalance_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
