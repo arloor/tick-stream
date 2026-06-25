@@ -1,0 +1,12 @@
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:00+08:00","last_price":100.0,"volume":100,"bid_px1":99.9,"bid_vol1":1000,"ask_px1":100.1,"ask_vol1":1000}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:01+08:00","last_price":100.0,"volume":100,"bid_px1":99.9,"bid_vol1":1000,"ask_px1":100.1,"ask_vol1":1000}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:02+08:00","last_price":100.1,"volume":100,"bid_px1":100.0,"bid_vol1":1000,"ask_px1":100.2,"ask_vol1":1000}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:03+08:00","last_price":100.1,"volume":100,"bid_px1":100.0,"bid_vol1":1000,"ask_px1":100.2,"ask_vol1":1000}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:04+08:00","last_price":100.2,"volume":100,"bid_px1":100.1,"bid_vol1":1000,"ask_px1":100.3,"ask_vol1":1000}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:05+08:00","last_price":102.5,"volume":600,"bid_px1":102.4,"bid_vol1":3500,"ask_px1":102.6,"ask_vol1":700}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:06+08:00","last_price":103.5,"volume":800,"bid_px1":103.4,"bid_vol1":4000,"ask_px1":103.6,"ask_vol1":300}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:07+08:00","last_price":104.0,"volume":900,"bid_px1":103.9,"bid_vol1":4200,"ask_px1":104.1,"ask_vol1":150}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:07+08:00","last_price":104.0,"volume":900}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T09:59:59+08:00","last_price":99.0,"volume":90}
+{"symbol":"SZSE.000001","event_time":"2026-06-25T10:00:08+08:00","last_price":10.0,"volume":100}
+{"symbol":"SHSE.600519","event_time":"2026-06-25T10:00:09+08:00","last_price":104.2,"volume":900}

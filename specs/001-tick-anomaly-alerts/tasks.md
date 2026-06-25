@@ -18,11 +18,11 @@
 
 **Purpose**: Initialize the Python package, test layout, and local-file safety boundaries.
 
-- [ ] T001 Create `pyproject.toml` with Python 3.12 metadata, dependencies (`gm`, `pydantic`, `PyYAML`, `requests`, `pytest`, `jsonschema`), and `tick-stream` console script
-- [ ] T002 Create package directories and package markers in `src/tick_stream/__init__.py` and `src/tick_stream/detection/__init__.py`
-- [ ] T003 [P] Create test scaffolding markers in `tests/conftest.py`, `tests/fixtures/config/.gitkeep`, and `tests/fixtures/ticks/.gitkeep`
-- [ ] T004 [P] Create `.gitignore` entries for `.venv/`, `var/audit/`, `config/*.local.yml`, and other credential-bearing local config files
-- [ ] T005 [P] Create `config/watchlist.example.yml` with placeholder GM and Feishu values matching `specs/001-tick-anomaly-alerts/contracts/config.schema.json`
+- [X] T001 Create `pyproject.toml` with Python 3.12 metadata, dependencies (`gm`, `pydantic`, `PyYAML`, `requests`, `pytest`, `jsonschema`), and `tick-stream` console script
+- [X] T002 Create package directories and package markers in `src/tick_stream/__init__.py` and `src/tick_stream/detection/__init__.py`
+- [X] T003 [P] Create test scaffolding markers in `tests/conftest.py`, `tests/fixtures/config/.gitkeep`, and `tests/fixtures/ticks/.gitkeep`
+- [X] T004 [P] Create `.gitignore` entries for `.venv/`, `var/audit/`, `config/*.local.yml`, and other credential-bearing local config files
+- [X] T005 [P] Create `config/watchlist.example.yml` with placeholder GM and Feishu values matching `specs/001-tick-anomaly-alerts/contracts/config.schema.json`
 
 ---
 
@@ -32,16 +32,16 @@
 
 **CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T006 Implement YAML config loading, `config.schema.json` validation, defaults, and secret-safe error messages in `src/tick_stream/config.py`
-- [ ] T007 [P] Define domain enums and dataclasses for watchlist symbols, ticks, order book snapshots, feature snapshots, anomaly rules, anomaly events, notifications, token cache, audit records, and health state in `src/tick_stream/models.py`
-- [ ] T008 [P] Implement append-only JSONL audit writer with secret redaction in `src/tick_stream/audit.py`
-- [ ] T009 [P] Implement monitoring health state serialization and secret-safe status output in `src/tick_stream/health.py`
-- [ ] T010 [P] Implement CLI command skeletons for `validate-config`, `replay`, `run`, and `health` in `src/tick_stream/cli.py`
-- [ ] T011 [P] Implement shared time parsing, numeric safety helpers, and stable JSON serialization in `src/tick_stream/utils.py`
-- [ ] T012 [P] Create valid and invalid YAML config fixtures in `tests/fixtures/config/valid_watchlist.yml` and `tests/fixtures/config/invalid_watchlist.yml`
-- [ ] T013 [P] Create config schema contract tests in `tests/contract/test_config_schema.py`
-- [ ] T014 Create CLI contract tests for `validate-config` success/failure behavior in `tests/contract/test_cli_contract.py`
-- [ ] T015 Implement reusable JSONL replay fixture reader and labeled-expectation parser in `src/tick_stream/replay.py`
+- [X] T006 Implement YAML config loading, `config.schema.json` validation, defaults, and secret-safe error messages in `src/tick_stream/config.py`
+- [X] T007 [P] Define domain enums and dataclasses for watchlist symbols, ticks, order book snapshots, feature snapshots, anomaly rules, anomaly events, notifications, token cache, audit records, and health state in `src/tick_stream/models.py`
+- [X] T008 [P] Implement append-only JSONL audit writer with secret redaction in `src/tick_stream/audit.py`
+- [X] T009 [P] Implement monitoring health state serialization and secret-safe status output in `src/tick_stream/health.py`
+- [X] T010 [P] Implement CLI command skeletons for `validate-config`, `replay`, `run`, and `health` in `src/tick_stream/cli.py`
+- [X] T011 [P] Implement shared time parsing, numeric safety helpers, and stable JSON serialization in `src/tick_stream/utils.py`
+- [X] T012 [P] Create valid and invalid YAML config fixtures in `tests/fixtures/config/valid_watchlist.yml` and `tests/fixtures/config/invalid_watchlist.yml`
+- [X] T013 [P] Create config schema contract tests in `tests/contract/test_config_schema.py`
+- [X] T014 Create CLI contract tests for `validate-config` success/failure behavior in `tests/contract/test_cli_contract.py`
+- [X] T015 Implement reusable JSONL replay fixture reader and labeled-expectation parser in `src/tick_stream/replay.py`
 
 **Checkpoint**: Foundation ready; user story implementation can now begin in priority order or in parallel by story.
 
@@ -55,26 +55,26 @@
 
 ### Tests for User Story 1
 
-- [ ] T016 [P] [US1] Create tick normalization and quality-filter unit tests in `tests/unit/test_tick_normalization.py`
-- [ ] T017 [P] [US1] Create price jump detector unit tests in `tests/unit/test_price_detector.py`
-- [ ] T018 [P] [US1] Create momentum detector unit tests in `tests/unit/test_momentum_detector.py`
-- [ ] T019 [P] [US1] Create order book liquidity detector unit tests in `tests/unit/test_orderbook_detector.py`
-- [ ] T020 [P] [US1] Create feature snapshot unit tests for volatility, turnover burst, OFI, queue imbalance, spread, depth collapse, and unavailable feature reasons in `tests/unit/test_feature_snapshot.py`
-- [ ] T021 [US1] Create replay integration test for mixed normal/anomaly tick fixtures in `tests/integration/test_replay_alert_flow.py`
+- [X] T016 [P] [US1] Create tick normalization and quality-filter unit tests in `tests/unit/test_tick_normalization.py`
+- [X] T017 [P] [US1] Create price jump detector unit tests in `tests/unit/test_price_detector.py`
+- [X] T018 [P] [US1] Create momentum detector unit tests in `tests/unit/test_momentum_detector.py`
+- [X] T019 [P] [US1] Create order book liquidity detector unit tests in `tests/unit/test_orderbook_detector.py`
+- [X] T020 [P] [US1] Create feature snapshot unit tests for volatility, turnover burst, OFI, queue imbalance, spread, depth collapse, and unavailable feature reasons in `tests/unit/test_feature_snapshot.py`
+- [X] T021 [US1] Create replay integration test for mixed normal/anomaly tick fixtures in `tests/integration/test_replay_alert_flow.py`
 
 ### Implementation for User Story 1
 
-- [ ] T022 [P] [US1] Implement tick normalization, duplicate rejection, out-of-order rejection, and missing-field quality status in `src/tick_stream/detection/normalization.py`
-- [ ] T023 [P] [US1] Implement rolling window storage for accepted ticks and per-symbol detector state in `src/tick_stream/detection/windows.py`
-- [ ] T024 [P] [US1] Implement FeatureSnapshot computation for realized volatility, turnover burst, OFI, queue imbalance, spread stress, depth collapse, cancellation/addition ratio, and feature availability in `src/tick_stream/detection/features.py`
-- [ ] T025 [P] [US1] Implement short-window price jump detector and severity mapping in `src/tick_stream/detection/price.py`
-- [ ] T026 [P] [US1] Implement robust momentum z-score detector and severity mapping in `src/tick_stream/detection/momentum.py`
-- [ ] T027 [P] [US1] Implement order book liquidity detector for sustained large additions, cancellations, and side imbalance in `src/tick_stream/detection/orderbook.py`
-- [ ] T028 [US1] Implement detection engine orchestration that emits AnomalyEvent objects with feature snapshot references in `src/tick_stream/detection/engine.py`
-- [ ] T029 [US1] Integrate replay processing, anomaly summaries, and dry-run notification preparation counts in `src/tick_stream/replay.py`
-- [ ] T030 [US1] Add JSONL tick fixtures for normal, price jump, momentum spike, order book anomaly, missing order book, duplicate, out-of-order, and out-of-watchlist scenarios in `tests/fixtures/ticks/sample.jsonl`
-- [ ] T031 [US1] Write feature and anomaly audit records during replay without credentials or raw config dumps in `src/tick_stream/audit.py`
-- [ ] T032 [US1] Wire the `tick-stream replay --dry-run-notify` command to the replay engine in `src/tick_stream/cli.py`
+- [X] T022 [P] [US1] Implement tick normalization, duplicate rejection, out-of-order rejection, and missing-field quality status in `src/tick_stream/detection/normalization.py`
+- [X] T023 [P] [US1] Implement rolling window storage for accepted ticks and per-symbol detector state in `src/tick_stream/detection/windows.py`
+- [X] T024 [P] [US1] Implement FeatureSnapshot computation for realized volatility, turnover burst, OFI, queue imbalance, spread stress, depth collapse, cancellation/addition ratio, and feature availability in `src/tick_stream/detection/features.py`
+- [X] T025 [P] [US1] Implement short-window price jump detector and severity mapping in `src/tick_stream/detection/price.py`
+- [X] T026 [P] [US1] Implement robust momentum z-score detector and severity mapping in `src/tick_stream/detection/momentum.py`
+- [X] T027 [P] [US1] Implement order book liquidity detector for sustained large additions, cancellations, and side imbalance in `src/tick_stream/detection/orderbook.py`
+- [X] T028 [US1] Implement detection engine orchestration that emits AnomalyEvent objects with feature snapshot references in `src/tick_stream/detection/engine.py`
+- [X] T029 [US1] Integrate replay processing, anomaly summaries, and dry-run notification preparation counts in `src/tick_stream/replay.py`
+- [X] T030 [US1] Add JSONL tick fixtures for normal, price jump, momentum spike, order book anomaly, missing order book, duplicate, out-of-order, and out-of-watchlist scenarios in `tests/fixtures/ticks/sample.jsonl`
+- [X] T031 [US1] Write feature and anomaly audit records during replay without credentials or raw config dumps in `src/tick_stream/audit.py`
+- [X] T032 [US1] Wire the `tick-stream replay --dry-run-notify` command to the replay engine in `src/tick_stream/cli.py`
 
 **Checkpoint**: User Story 1 is independently functional when replay fixtures produce expected anomaly events and no Feishu network calls.
 
@@ -88,22 +88,22 @@
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Create Feishu message payload contract tests in `tests/contract/test_feishu_payload.py`
-- [ ] T034 [P] [US2] Create Feishu token cache and forced-refresh unit tests in `tests/unit/test_feishu_token.py`
-- [ ] T035 [P] [US2] Create notification suppression and escalation unit tests in `tests/unit/test_suppression.py`
-- [ ] T036 [US2] Create mocked Feishu notification retry integration tests in `tests/integration/test_notification_retry.py`
-- [ ] T037 [US2] Extend CLI replay contract tests for `--dry-run-notify` and live notification summary fields in `tests/contract/test_cli_contract.py`
+- [X] T033 [P] [US2] Create Feishu message payload contract tests in `tests/contract/test_feishu_payload.py`
+- [X] T034 [P] [US2] Create Feishu token cache and forced-refresh unit tests in `tests/unit/test_feishu_token.py`
+- [X] T035 [P] [US2] Create notification suppression and escalation unit tests in `tests/unit/test_suppression.py`
+- [X] T036 [US2] Create mocked Feishu notification retry integration tests in `tests/integration/test_notification_retry.py`
+- [X] T037 [US2] Extend CLI replay contract tests for `--dry-run-notify` and live notification summary fields in `tests/contract/test_cli_contract.py`
 
 ### Implementation for User Story 2
 
-- [ ] T038 [P] [US2] Implement Feishu `post` content builder with price, momentum, order book, severity, reason, and safe title fields in `src/tick_stream/notifier.py`
-- [ ] T039 [US2] Implement Feishu `tenant_access_token` acquisition, in-memory token cache, expiry margin handling, and forced refresh in `src/tick_stream/notifier.py`
-- [ ] T040 [US2] Implement Feishu message send, response parsing, bounded retry, recoverable/non-recoverable failure classification, and delivery-state updates in `src/tick_stream/notifier.py`
-- [ ] T041 [P] [US2] Implement cooldown, aggregation, severity escalation, and suppression-key logic in `src/tick_stream/detection/suppression.py`
-- [ ] T042 [US2] Integrate suppression before notification preparation in `src/tick_stream/replay.py`
-- [ ] T043 [US2] Write notification attempt, sent, failed, retried, and suppressed audit records without token values in `src/tick_stream/audit.py`
-- [ ] T044 [US2] Integrate real notification sending for replay without `--dry-run-notify` in `src/tick_stream/replay.py`
-- [ ] T045 [US2] Add `single-alert.jsonl` replay fixture that produces exactly one reportable Feishu notification in `tests/fixtures/ticks/single-alert.jsonl`
+- [X] T038 [P] [US2] Implement Feishu `post` content builder with price, momentum, order book, severity, reason, and safe title fields in `src/tick_stream/notifier.py`
+- [X] T039 [US2] Implement Feishu `tenant_access_token` acquisition, in-memory token cache, expiry margin handling, and forced refresh in `src/tick_stream/notifier.py`
+- [X] T040 [US2] Implement Feishu message send, response parsing, bounded retry, recoverable/non-recoverable failure classification, and delivery-state updates in `src/tick_stream/notifier.py`
+- [X] T041 [P] [US2] Implement cooldown, aggregation, severity escalation, and suppression-key logic in `src/tick_stream/detection/suppression.py`
+- [X] T042 [US2] Integrate suppression before notification preparation in `src/tick_stream/replay.py`
+- [X] T043 [US2] Write notification attempt, sent, failed, retried, and suppressed audit records without token values in `src/tick_stream/audit.py`
+- [X] T044 [US2] Integrate real notification sending for replay without `--dry-run-notify` in `src/tick_stream/replay.py`
+- [X] T045 [US2] Add `single-alert.jsonl` replay fixture that produces exactly one reportable Feishu notification in `tests/fixtures/ticks/single-alert.jsonl`
 
 **Checkpoint**: User Story 2 is independently functional when mocked Feishu tests pass and one replay alert can produce a contract-compliant notification.
 
@@ -117,22 +117,22 @@
 
 ### Tests for User Story 3
 
-- [ ] T046 [P] [US3] Create rule profile, watchlist active/inactive, and threshold override unit tests in `tests/unit/test_config_rules.py`
-- [ ] T047 [P] [US3] Create market-state filter unit tests for ignored sessions, data gaps, and special market states in `tests/unit/test_market_filters.py`
-- [ ] T048 [US3] Create replay integration test showing config changes alter anomaly outcomes in `tests/integration/test_config_update_replay.py`
-- [ ] T049 [US3] Create mocked GM live startup and subscription integration tests in `tests/integration/test_live_gm_startup.py`
-- [ ] T050 [US3] Extend CLI contract tests for `run` startup output and `health` output in `tests/contract/test_cli_contract.py`
+- [X] T046 [P] [US3] Create rule profile, watchlist active/inactive, and threshold override unit tests in `tests/unit/test_config_rules.py`
+- [X] T047 [P] [US3] Create market-state filter unit tests for ignored sessions, data gaps, and special market states in `tests/unit/test_market_filters.py`
+- [X] T048 [US3] Create replay integration test showing config changes alter anomaly outcomes in `tests/integration/test_config_update_replay.py`
+- [X] T049 [US3] Create mocked GM live startup and subscription integration tests in `tests/integration/test_live_gm_startup.py`
+- [X] T050 [US3] Extend CLI contract tests for `run` startup output and `health` output in `tests/contract/test_cli_contract.py`
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] Implement watchlist active/inactive filtering, per-symbol rule profile selection, and threshold override resolution in `src/tick_stream/config.py`
-- [ ] T052 [P] [US3] Implement market-state filters for ignored sessions, data gaps, missing order book availability, and special market status hooks in `src/tick_stream/detection/filters.py`
-- [ ] T053 [US3] Implement GM SDK initialization, token setup, terminal address setup, strategy ID setup, and active watchlist subscription in `src/tick_stream/gm_client.py`
-- [ ] T054 [US3] Implement live tick callback adapter that converts GM tick objects into TickRecord input for the detection engine in `src/tick_stream/gm_client.py`
-- [ ] T055 [US3] Implement live runtime orchestration for GM client, detection engine, suppression, notifier, audit, and shutdown handling in `src/tick_stream/runner.py`
-- [ ] T056 [US3] Wire `tick-stream run --config` to the live runtime and startup status output in `src/tick_stream/cli.py`
-- [ ] T057 [US3] Wire `tick-stream health --audit-dir` to read latest audit/health records and emit secret-safe JSON in `src/tick_stream/cli.py`
-- [ ] T058 [US3] Add local YAML example variants for active/inactive symbols and threshold changes in `tests/fixtures/config/watchlist_variant.yml`
+- [X] T051 [US3] Implement watchlist active/inactive filtering, per-symbol rule profile selection, and threshold override resolution in `src/tick_stream/config.py`
+- [X] T052 [P] [US3] Implement market-state filters for ignored sessions, data gaps, missing order book availability, and special market status hooks in `src/tick_stream/detection/filters.py`
+- [X] T053 [US3] Implement GM SDK initialization, token setup, terminal address setup, strategy ID setup, and active watchlist subscription in `src/tick_stream/gm_client.py`
+- [X] T054 [US3] Implement live tick callback adapter that converts GM tick objects into TickRecord input for the detection engine in `src/tick_stream/gm_client.py`
+- [X] T055 [US3] Implement live runtime orchestration for GM client, detection engine, suppression, notifier, audit, and shutdown handling in `src/tick_stream/runner.py`
+- [X] T056 [US3] Wire `tick-stream run --config` to the live runtime and startup status output in `src/tick_stream/cli.py`
+- [X] T057 [US3] Wire `tick-stream health --audit-dir` to read latest audit/health records and emit secret-safe JSON in `src/tick_stream/cli.py`
+- [X] T058 [US3] Add local YAML example variants for active/inactive symbols and threshold changes in `tests/fixtures/config/watchlist_variant.yml`
 
 **Checkpoint**: User Story 3 is independently functional when config-only changes alter replay/live behavior and health status is available without exposing secrets.
 
@@ -142,13 +142,13 @@
 
 **Purpose**: Hardening, metrics validation, documentation, and operational polish across all stories.
 
-- [ ] T059 [P] Add labeled replay fixtures for success criteria SC-001, SC-002, and SC-003 in `tests/fixtures/ticks/labeled_anomalies.jsonl`
-- [ ] T060 [P] Add replay metric tests for detection recall, false alert rate, duplicate reduction, and required notification fields in `tests/integration/test_success_criteria.py`
-- [ ] T061 [P] Add 500-symbol synthetic replay performance test for the 5-second reportability goal in `tests/integration/test_performance_500_symbols.py`
-- [ ] T062 [P] Add secret redaction contract tests for logs, CLI output, audit records, and Feishu message text in `tests/contract/test_secret_redaction.py`
-- [ ] T063 [P] Document local configuration handling, ignored config patterns, GM terminal prerequisites, and Feishu permission setup in `README.md`
-- [ ] T064 Update quickstart validation notes after implementation in `specs/001-tick-anomaly-alerts/quickstart.md`
-- [ ] T065 Run the full quickstart validation flow and record any deviations in `specs/001-tick-anomaly-alerts/quickstart.md`
+- [X] T059 [P] Add labeled replay fixtures for success criteria SC-001, SC-002, and SC-003 in `tests/fixtures/ticks/labeled_anomalies.jsonl`
+- [X] T060 [P] Add replay metric tests for detection recall, false alert rate, duplicate reduction, and required notification fields in `tests/integration/test_success_criteria.py`
+- [X] T061 [P] Add 500-symbol synthetic replay performance test for the 5-second reportability goal in `tests/integration/test_performance_500_symbols.py`
+- [X] T062 [P] Add secret redaction contract tests for logs, CLI output, audit records, and Feishu message text in `tests/contract/test_secret_redaction.py`
+- [X] T063 [P] Document local configuration handling, ignored config patterns, GM terminal prerequisites, and Feishu permission setup in `README.md`
+- [X] T064 Update quickstart validation notes after implementation in `specs/001-tick-anomaly-alerts/quickstart.md`
+- [X] T065 Run the full quickstart validation flow and record any deviations in `specs/001-tick-anomaly-alerts/quickstart.md`
 
 ---
 

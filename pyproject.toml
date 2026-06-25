@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tick-stream"
+version = "0.1.0"
+description = "A-share tick anomaly monitoring and Feishu alerting"
+requires-python = ">=3.12"
+dependencies = [
+  "gm",
+  "pydantic",
+  "PyYAML",
+  "requests",
+  "pytest",
+  "jsonschema",
+]
+
+[project.scripts]
+tick-stream = "tick_stream.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

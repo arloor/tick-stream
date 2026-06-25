@@ -33,13 +33,14 @@ Request body:
 {
   "receive_id": "oc_xxxxxxxxxxxxxxxxx",
   "msg_type": "post",
-  "content": "{\"post\":{\"zh_cn\":{\"title\":\"A股异动告警 | 贵州茅台 600519.SH | HIGH\",\"content\":[[{\"tag\":\"text\",\"text\":\"类型：价格异动 + 盘口增强\\n\"},{\"tag\":\"text\",\"text\":\"方向：上涨\\n\"},{\"tag\":\"text\",\"text\":\"触发时间：2026-06-25 10:30:00\\n\"},{\"tag\":\"text\",\"text\":\"最新价：1688.00\\n\"},{\"tag\":\"text\",\"text\":\"30秒涨跌幅：2.64%\\n\"},{\"tag\":\"text\",\"text\":\"动量z-score：4.20\\n\"},{\"tag\":\"text\",\"text\":\"盘口：卖一至卖五撤单比例42%，买盘占比76%\\n\"},{\"tag\":\"text\",\"text\":\"原因：30秒价格变化超过2.5%，动量显著高于3分钟基准，盘口出现持续单侧流动性变化\"}]]}}}"
+  "content": "{\"zh_cn\":{\"title\":\"A股异动告警 | 贵州茅台 600519.SH | HIGH\",\"content\":[[{\"tag\":\"text\",\"text\":\"类型：价格异动 + 盘口增强\"}],[{\"tag\":\"text\",\"text\":\"方向：上涨\"}],[{\"tag\":\"text\",\"text\":\"触发时间：2026-06-25 10:30:00\"}],[{\"tag\":\"text\",\"text\":\"最新价：1688.00\"}],[{\"tag\":\"text\",\"text\":\"30秒涨跌幅：2.64%\"}],[{\"tag\":\"text\",\"text\":\"动量z-score：4.20\"}],[{\"tag\":\"text\",\"text\":\"盘口：卖一至卖五撤单比例42%，买盘占比76%\"}],[{\"tag\":\"text\",\"text\":\"原因：30秒价格变化超过2.5%，动量显著高于3分钟基准，盘口出现持续单侧流动性变化\"}]]}}"
 }
 ```
 
 Content rules:
 
 - `content` must be a JSON-serialized string, not an object.
+- For `im/v1/messages` with `msg_type=post`, the serialized object uses language keys such as `zh_cn` at the top level.
 - Title must include anomaly category, symbol/name, and severity.
 - Body must include anomaly type, direction, trigger time, latest price, measured value, severity, and reason.
 - When order book signals contributed to the alert, body must include cancellation/addition/imbalance measurements.

@@ -132,7 +132,7 @@ Expected:
 ## 6. Run Live Monitoring
 
 ```bash
-tick-stream run --config config/watchlist.yml
+tick-stream run --config config/watchlist.yml --blocking
 ```
 
 Expected startup:
@@ -167,3 +167,22 @@ Expected:
 | Feishu token failure | mocked replay/integration test | Token refresh or sanitized failure |
 | Feishu 5xx | mocked replay/integration test | Bounded retry then sent/failed state |
 | Live startup | `run` | GM and Feishu health visible |
+
+## Implementation Validation Notes
+
+Validated on 2026-06-25 with the local development environment.
+
+- Automated tests: `.venv/bin/python -m pytest -q`
+- Result: `25 passed in 0.30s`
+- Config validation: `PYTHONPATH=src .venv/bin/python -m tick_stream.cli validate-config --config tests/fixtures/config/valid_watchlist.yml`
+- Config result: `{"status": "ok", "symbol_count": 2, "rule_profiles": ["default"]}`
+- Dry-run replay: `PYTHONPATH=src .venv/bin/python -m tick_stream.cli replay --config tests/fixtures/config/valid_watchlist.yml --ticks tests/fixtures/ticks/sample.jsonl --dry-run-notify`
+- Replay result: `12` ticks read, `9` accepted, `8` anomalies detected, `2` notifications prepared, `0` notifications sent.
+- Health command: `PYTHONPATH=src .venv/bin/python -m tick_stream.cli health --audit-dir var/audit-test`
+- Health result: GM status `replay`, Feishu status `dry_run`, active symbol count `1`, pending notifications `0`.
+- Environment deviation: the available interpreter was Python 3.13.5. The package metadata still requires Python `>=3.12`, so Python 3.12 remains the documented baseline.
+- Real GM validation: installed `gm==3.0.184`, generated ignored local config at `config/watchlist.local.yml`, removed Hong Kong symbols from the watchlist, and verified `current(...)` returned all `25` configured A-share/index symbols from the configured GM terminal.
+- Real live startup smoke check: `PYTHONPATH=src .venv/bin/python -u -m tick_stream.cli run --config config/watchlist.local.yml` returned `{"status": "running", "active_symbol_count": 25, "gm_connection_status": "healthy", "feishu_status": "healthy"}`.
+- Real blocking live loop: `timeout 10s env PYTHONPATH=src .venv/bin/python -u -m tick_stream.cli run --config config/watchlist.local.yml --blocking` connected to market/trade services and processed live tick callbacks until intentionally stopped by `timeout` with exit code `124`.
+- Real Feishu validation: `tenant_access_token` acquisition succeeded and replaying `var/replay/single-alert-local.jsonl` sent one structured `post` notification with `notifications_sent: 1`.
+- Feishu compatibility note: for `im/v1/messages` with `msg_type=post`, the accepted content shape is a JSON-serialized object with `zh_cn` at the top level. A `post.zh_cn` wrapper returned Feishu error `230001 invalid message content`.
