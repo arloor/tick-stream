@@ -8,7 +8,7 @@ This guide validates the planned feature end to end before live monitoring.
 - GM SDK installable with the mirror documented in `GM-API.md`.
 - GM terminal is running and reachable from this machine.
 - Feishu self-built app has bot/message permissions and valid app credentials.
-- Recipient ID and recipient ID type are provided through environment variables.
+- GM and Feishu credentials are available to place directly in a local YAML config file that is not committed.
 
 ## 1. Create Environment
 
@@ -20,40 +20,25 @@ python -m pip install gm -U -i https://mirrors.aliyun.com/pypi/simple/
 python -m pip install pydantic PyYAML requests pytest jsonschema
 ```
 
-## 2. Provide Secrets Through Environment
-
-```bash
-export GM_TOKEN="replace-with-local-gm-token"
-export FEISHU_APP_ID="cli_xxxxxxxxxxxxxxxx"
-export FEISHU_APP_SECRET="replace-with-app-secret"
-export FEISHU_RECEIVE_ID_TYPE="chat_id"
-export FEISHU_RECEIVE_ID="oc_xxxxxxxxxxxxxxxx"
-export FEISHU_TOKEN_REFRESH_MARGIN_SECONDS="300"
-export FEISHU_MAX_ATTEMPTS="3"
-export FEISHU_RETRY_BACKOFF_SECONDS="1,5,30"
-```
-
-Do not commit real values.
-
-## 3. Create Local Config
+## 2. Create Local Config
 
 Create `config/watchlist.yml` using [contracts/config.schema.json](./contracts/config.schema.json) as the contract. Minimal example:
 
 ```yaml
 gm:
-  token_env: GM_TOKEN
+  token: "replace-with-local-gm-token"
   serv_addr: "192.168.5.127:7001"
   strategy_id: "replace-with-strategy-id"
   mode: live
 
 feishu:
-  app_id_env: FEISHU_APP_ID
-  app_secret_env: FEISHU_APP_SECRET
-  receive_id_type_env: FEISHU_RECEIVE_ID_TYPE
-  receive_id_env: FEISHU_RECEIVE_ID
-  token_refresh_margin_seconds_env: FEISHU_TOKEN_REFRESH_MARGIN_SECONDS
-  max_attempts_env: FEISHU_MAX_ATTEMPTS
-  retry_backoff_seconds_env: FEISHU_RETRY_BACKOFF_SECONDS
+  app_id: "cli_xxxxxxxxxxxxxxxx"
+  app_secret: "replace-with-app-secret"
+  receive_id_type: chat_id
+  receive_id: "oc_xxxxxxxxxxxxxxxx"
+  token_refresh_margin_seconds: 300
+  max_attempts: 3
+  retry_backoff_seconds: [1, 5, 30]
 
 watchlist:
   - symbol: SHSE.600519
@@ -101,7 +86,9 @@ audit:
   write_tick_summaries: true
 ```
 
-## 4. Validate Config
+Do not commit real config files containing credentials or recipient IDs.
+
+## 3. Validate Config
 
 ```bash
 tick-stream validate-config --config config/watchlist.yml
@@ -113,7 +100,7 @@ Expected:
 - JSON output contains `status: ok`.
 - No secret values are printed.
 
-## 5. Replay Tick Fixture Without Sending Notifications
+## 4. Replay Tick Fixture Without Sending Notifications
 
 ```bash
 tick-stream replay --config config/watchlist.yml --ticks tests/fixtures/ticks/sample.jsonl --dry-run-notify
@@ -124,10 +111,11 @@ Expected:
 - Fixture ticks are accepted or rejected with clear quality reasons.
 - Known price jump, momentum, and sustained order book liquidity scenarios create anomaly events.
 - Fixtures without order book fields still run price and momentum detection and mark the order book detector unavailable.
+- Audit output includes feature snapshots for replay calibration, including any unavailable feature reasons.
 - Feishu payloads validate against [contracts/feishu-message.md](./contracts/feishu-message.md).
 - No HTTP request is sent when `--dry-run-notify` is set.
 
-## 6. Test Feishu Authentication and Message Contract
+## 5. Test Feishu Authentication and Message Contract
 
 Use a dedicated test recipient before production groups:
 
@@ -141,7 +129,7 @@ Expected:
 - One structured Feishu `post` message is sent.
 - Audit log records notification status as `sent` and stores the returned message ID when available.
 
-## 7. Run Live Monitoring
+## 6. Run Live Monitoring
 
 ```bash
 tick-stream run --config config/watchlist.yml
@@ -154,7 +142,7 @@ Expected startup:
 - Active symbol count matches the config.
 - Process subscribes only to active watchlist symbols.
 
-## 8. Inspect Health
+## 7. Inspect Health
 
 ```bash
 tick-stream health --audit-dir var/audit
@@ -174,6 +162,7 @@ Expected:
 | Price jump replay | `replay --dry-run-notify` | Price anomaly event generated |
 | Momentum replay | `replay --dry-run-notify` | Momentum anomaly event generated |
 | Order book replay | `replay --dry-run-notify` | Sustained cancellation or imbalance event generated when depth fields are present |
+| Feature audit replay | `replay --dry-run-notify` | Feature snapshots are written with unavailable-feature reasons when data is missing |
 | Duplicate cooldown | `replay --dry-run-notify` | Duplicate notifications suppressed |
 | Feishu token failure | mocked replay/integration test | Token refresh or sanitized failure |
 | Feishu 5xx | mocked replay/integration test | Bounded retry then sent/failed state |

@@ -44,6 +44,69 @@ Severity defaults:
 - Volume-only momentum: not reliable when tick volume fields are absent or inconsistent.
 - Treat every large cancellation as an alert: rejected because normal A-share order book updates can be bursty; sustained confirmation and severity gating are needed.
 
+## Decision: Expanded anomaly method catalogue and phased adoption
+
+Keep v1 alert decisions deterministic, but compute and audit a richer set of interpretable microstructure features so thresholds can be calibrated from replay data and later promoted into more advanced detectors. The detector set should be grouped into four tiers.
+
+### Tier 1: Adopt in v1
+
+These methods are transparent, fast, explainable in Feishu messages, and testable with small fixtures.
+
+- **Short-window return shock**: Compare latest price with the earliest accepted tick in a short window and with a robust recent-return baseline.
+- **Momentum acceleration**: Compare short impulse velocity against a longer baseline using robust z-score.
+- **Realized volatility burst**: Track short-window realized volatility and alert when it jumps relative to the same symbol's intraday baseline. This catches violent oscillation even when net return is small.
+- **Order flow imbalance (OFI)**: Track net pressure from best bid/ask quantity changes, limit order additions, market-order-like consumption, and cancellations. Research on order book events finds short-horizon price changes are more robustly related to order flow imbalance than to raw trade volume.
+- **Queue imbalance**: Track bid-side versus ask-side displayed quantity at top levels. Extreme imbalance is a pressure signal, but should require persistence and market-state filters.
+- **Depth/spread stress**: Track sudden spread widening, top-of-book depth collapse, and recovery failure. Treat as liquidity risk and severity enhancer.
+- **Cancellation/addition pressure**: Track large cancellations or order additions by side and level. Require at least two consecutive ticks or a minimum duration before standalone alerting.
+- **Volume/turnover burst**: Track current tick or rolling turnover versus an intraday baseline. Use as an enhancer unless paired with price, momentum, or order book pressure.
+
+### Tier 2: Add after enough replay fixtures exist
+
+These methods are still interpretable, but need more data calibration.
+
+- **Aggressor-side trade imbalance**: Infer buyer-initiated versus seller-initiated trades using quote/tick rules when the feed does not directly provide trade direction. Classic trade classification literature highlights quote/trade timing issues and unclassifiable inside-spread trades, so the signal should be treated as probabilistic rather than absolute.
+- **VPIN-style flow toxicity**: Bucket trades by volume and estimate buy/sell volume imbalance and trade intensity. Useful as a risk/volatility warning, but it requires reliable trade classification or bulk volume classification and enough volume history.
+- **CUSUM or Shiryaev-Roberts change detection**: Maintain sequential change scores for return, volatility, OFI, and trade intensity. Good for structural breaks that are smaller than hard thresholds but persistent.
+- **Bayesian online changepoint detection**: Estimate the probability that the current regime has changed. Useful for combining multiple features, but heavier than simple thresholds.
+- **Relative strength residual**: Compare symbol return/momentum with index, sector, or watchlist peer baseline. Alert when the symbol is abnormal after removing market-wide movement.
+- **Lead-lag confirmation**: For related symbols or sector leaders, raise severity if the target moves ahead of peers with supporting order book pressure; lower severity when the whole sector moves together.
+
+### Tier 3: Research/backtest only for now
+
+These can be valuable, but should not drive live Feishu alerts until replay evidence proves low false positives.
+
+- **Isolation Forest / Local Outlier Factor / One-Class SVM**: Train on feature vectors such as return, volatility, volume burst, OFI, queue imbalance, cancellation pressure, spread, and depth. scikit-learn distinguishes outlier detection from novelty detection; the latter requires a cleaner normal training set, which is hard during market regime shifts.
+- **Online Half-Space Trees**: Online isolation-style scoring for streaming data. River documents Half-Space Trees as an online variant of isolation forests, useful when anomalies are spread out, but weaker when anomalies cluster in windows.
+- **Matrix Profile / discord detection**: Useful in offline replay to discover unusual subsequences and validate whether deterministic rules miss recurring shapes. Online variants exist, but v1 should use it for calibration, not live alerting.
+- **Hawkes/intensity models**: Model self-exciting trade/order intensity. Potentially good for quote stuffing or event clustering, but overkill without high-quality event timestamps and calibration.
+- **Deep sequence models**: LSTM/Transformer autoencoders or order-book forecasting models. Rejected for v1 because they need substantial clean historical data, explainability work, and model monitoring.
+
+### Tier 4: Context filters and alert hygiene
+
+These are not standalone anomaly methods, but they strongly reduce false positives.
+
+- **Session-aware thresholds**: Use stricter rules near open, close, auction windows, after halts/suspensions, and around limit-up/limit-down states.
+- **Liquidity bucket thresholds**: Separate thresholds for high-liquidity, mid-liquidity, and thinly traded symbols.
+- **Minimum evidence score**: Require at least two independent signals for `high` or `critical` unless one signal is extremely large.
+- **Cooldown with escalation**: Continue suppressing duplicates, but allow severity escalation when new evidence appears.
+- **Explainability requirement**: Every alert must include the top contributing signals, not only a model score.
+
+**Rationale**: A deterministic v1 gives clear operator trust and straightforward tests. Computing a richer feature layer from day one creates a bridge to more advanced methods without letting black-box scores spray alerts into Feishu. Order book event research supports OFI and depth-aware signals; VPIN research supports volume-imbalance toxicity as a volatility/risk measure; online changepoint methods are suitable for regime shifts; standard anomaly libraries are useful once normal training windows and replay labels exist.
+
+**Adoption recommendation**:
+
+- Implement Tier 1 in v1.
+- Record Tier 2 feature values in audit logs where data is available, but gate live alerts behind explicit config.
+- Keep Tier 3 as offline research until replay benchmarks show improved precision/recall over deterministic rules.
+- Treat Tier 4 as mandatory alert hygiene.
+
+**Alternatives considered**:
+
+- Jump straight to ML anomaly scoring: rejected because it weakens alert explainability and needs labeled or at least clean normal data.
+- Use only price/momentum: too narrow; it misses liquidity and pressure anomalies that may precede price movement.
+- Use every computed feature as a standalone alert: rejected because correlated features would create duplicate/noisy notifications.
+
 ## Decision: Tick quality and market-state filtering
 
 Before detection, normalize ticks and reject records with missing symbol, non-positive price, duplicated timestamp/price identity, or event time older than the latest accepted tick for the symbol. Normalize available bid/ask depth into an order book snapshot; when depth is missing, mark the order book detector unavailable while continuing price and momentum detection. Suppress detection during explicitly configured ignored sessions and treat data gaps as baseline resets. Use daily metadata when available to flag suspension, limit-up, limit-down, and special opening/closing windows.
@@ -80,13 +143,14 @@ Acquire `tenant_access_token` from the self-built app token endpoint with `app_i
 
 ## Decision: Configuration and secret handling
 
-Use a YAML config file for watchlist, detector thresholds, GM connection settings, audit paths, and names of environment variables. All Feishu parameters must be supplied through environment variables, including app ID, app secret, recipient type, recipient ID, token refresh margin, max attempts, and retry backoff. Source-controlled examples must use environment variable names only.
+Use a YAML config file for watchlist, detector thresholds, GM connection settings, Feishu parameters, audit paths, and retry policy. GM token, Feishu app ID, Feishu app secret, recipient type, recipient ID, token refresh margin, max attempts, and retry backoff are loaded directly from YAML. Source-controlled examples must use placeholders only; real credential-bearing YAML files must remain local and uncommitted.
 
-**Rationale**: The GM and Feishu integrations require credentials and deployment-specific routing. Keeping values out of source reduces accidental disclosure and makes local/live environments easier to switch.
+**Rationale**: The project already uses YAML for operator configuration, so reading values directly keeps one configuration source. Keeping real credential-bearing YAML files out of version control still reduces accidental disclosure and makes local/live deployments explicit.
 
 **Alternatives considered**:
 
 - Hardcode values from `GM-API.md` or Feishu app settings: rejected because credentials and recipients should not be duplicated into source.
+- A second configuration indirection layer: rejected by latest project decision because YAML should be the single configuration source.
 - Prompt interactively for secrets on every run: poor fit for unattended market monitoring.
 
 ## Decision: JSONL audit trail
@@ -105,3 +169,10 @@ Write append-only JSONL records for accepted ticks summary, anomaly events, supp
 - Local: [GM-API.md](../../GM-API.md)
 - Feishu message create: https://open.feishu.cn/document/server-docs/im-v1/message/create?lang=zh-CN
 - Feishu tenant token: https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
+- Cont, Kukanov, Stoikov, "The Price Impact of Order Book Events": https://arxiv.org/abs/1011.6402
+- Lee and Ready, "Inferring Trade Direction from Intraday Data": https://doi.org/10.1111/j.1540-6261.1991.tb02683.x
+- Easley, Lopez de Prado, O'Hara, "Flow Toxicity and Liquidity in a High Frequency World": https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1695596
+- Adams and MacKay, "Bayesian Online Changepoint Detection": https://arxiv.org/abs/0710.3742
+- scikit-learn novelty and outlier detection documentation: https://scikit-learn.org/stable/modules/outlier_detection.html
+- River HalfSpaceTrees documentation: https://riverml.xyz/0.11.1/api/anomaly/HalfSpaceTrees/
+- UCR Matrix Profile research page: https://www.cs.ucr.edu/~eamonn/MatrixProfile.html

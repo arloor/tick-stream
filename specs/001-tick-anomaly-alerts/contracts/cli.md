@@ -11,7 +11,7 @@ tick-stream validate-config --config config/watchlist.yml
 Behavior:
 
 - Reads and validates configuration against [config.schema.json](./config.schema.json).
-- Verifies required sections: GM connection, Feishu environment variable mapping, watchlist, rule profiles, audit settings.
+- Verifies required sections: GM connection, Feishu notification settings, watchlist, rule profiles, audit settings.
 - Does not connect to GM or Feishu.
 
 Exit codes:

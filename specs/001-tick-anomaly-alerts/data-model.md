@@ -51,6 +51,7 @@ Validation:
 Relationships:
 
 - Belongs to one `WatchlistSymbol`.
+- Produces zero or one `FeatureSnapshot`.
 - May trigger zero or more `AnomalyEvent`.
 
 ## OrderBookSnapshot
@@ -75,6 +76,37 @@ Validation:
 - Quantities must be non-negative.
 - Imbalance ratio must be between 0 and 1.
 - Added/cancelled quantities are computed only when a previous accepted snapshot exists.
+
+## FeatureSnapshot
+
+Represents the interpretable anomaly feature values computed from one accepted tick and recent rolling windows.
+
+Fields:
+
+- `symbol`: related watchlist symbol.
+- `event_time`: timestamp of the source tick.
+- `price_return_short_pct`: short-window return.
+- `momentum_z`: robust z-score of short-term momentum against baseline.
+- `realized_volatility_ratio`: short-window realized volatility divided by intraday baseline.
+- `volume_burst_ratio`: short-window volume or turnover divided by baseline.
+- `order_flow_imbalance`: net order book pressure when depth is available.
+- `queue_imbalance_ratio`: bid-side versus ask-side displayed depth imbalance.
+- `spread_ratio`: current spread relative to recent baseline or tick size.
+- `depth_collapse_ratio`: current top-depth reduction versus recent baseline.
+- `cancel_add_ratio`: cancellation quantity divided by addition quantity over the configured window.
+- `relative_strength_residual`: optional symbol move after subtracting index, sector, or peer baseline.
+- `feature_availability`: map of feature name to `available`, `missing_data`, or `not_configured`.
+
+Validation:
+
+- Feature values must be computed only from accepted ticks.
+- Missing optional inputs must set feature availability rather than failing the whole snapshot.
+- Feature snapshots must be safe for audit logs and must not include credentials or raw configuration values.
+
+Relationships:
+
+- Belongs to one `TickRecord`.
+- Supplies measurements for zero or more `AnomalyEvent`.
 
 ## AnomalyRuleSet
 
@@ -126,6 +158,7 @@ Fields:
 - `trigger_time`: timestamp of the triggering tick.
 - `trigger_price`: latest accepted price at trigger time.
 - `measurement`: structured values used by the detector, such as return percentage, z-score, window duration, and baseline value.
+- `feature_snapshot_ref`: optional reference to the feature snapshot that supplied measurements.
 - `reason`: short human-readable trigger explanation.
 - `status`: `detected`, `suppressed`, `notification_pending`, `notification_sent`, `notification_failed`, or `resolved`.
 - `suppression_key`: `(symbol, anomaly_type, direction)`.
@@ -156,8 +189,8 @@ Fields:
 
 - `notification_id`: unique notification identifier.
 - `event_ids`: one or more related anomaly event IDs.
-- `receive_id_type`: `chat_id`, `open_id`, `user_id`, `union_id`, or `email`, resolved from environment.
-- `receive_id`: recipient identifier resolved from environment.
+- `receive_id_type`: `chat_id`, `open_id`, `user_id`, `union_id`, or `email`, loaded from local YAML configuration.
+- `receive_id`: recipient identifier loaded from local YAML configuration.
 - `msg_type`: `post` for v1.
 - `content`: structured Feishu message content before JSON serialization.
 - `delivery_status`: `pending`, `sent`, `failed`, or `abandoned`.
@@ -170,7 +203,7 @@ Fields:
 Validation:
 
 - `receive_id_type`, `receive_id`, `msg_type`, and `content` are required before send.
-- Feishu app ID, app secret, recipient type, recipient ID, retry attempts, retry backoff, and token refresh margin must be resolved from environment variables rather than source-controlled config values.
+- Feishu app ID, app secret, recipient type, recipient ID, retry attempts, retry backoff, and token refresh margin must be loaded from local YAML configuration and must not be printed in logs.
 - Retry attempts must not exceed configured max attempts.
 - Sent notifications require `feishu_message_id` when Feishu returns one.
 
@@ -196,7 +229,7 @@ Represents one append-only operational record.
 
 Fields:
 
-- `record_type`: `tick`, `anomaly`, `suppression`, `notification`, or `health`.
+- `record_type`: `tick`, `feature`, `anomaly`, `suppression`, `notification`, or `health`.
 - `record_time`: local write timestamp.
 - `payload`: type-specific JSON object.
 

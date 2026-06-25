@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Validation passed after initial review. Revalidated after adding order book liquidity anomaly scope and Feishu environment-variable parameter requirements; no clarification markers remain.
+- Validation passed after initial review. Revalidated after adding order book liquidity anomaly scope and switching GM/Feishu runtime parameters to local YAML configuration; no clarification markers remain.

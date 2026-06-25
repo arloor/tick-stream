@@ -9,7 +9,7 @@ Authorization: Bearer {tenant_access_token}
 Content-Type: application/json; charset=utf-8
 ```
 
-The token is acquired with Feishu app credentials read from environment variables and refreshed before expiry. Token values, app secrets, recipient identifiers, and raw environment dumps must not be written to source-controlled files or audit logs.
+The token is acquired with Feishu app credentials read from the local YAML configuration and refreshed before expiry. Token values, app secrets, recipient identifiers, and raw configuration dumps must not be written to source-controlled files or audit logs.
 
 ## Send Message Request
 
@@ -43,7 +43,7 @@ Content rules:
 - Title must include anomaly category, symbol/name, and severity.
 - Body must include anomaly type, direction, trigger time, latest price, measured value, severity, and reason.
 - When order book signals contributed to the alert, body must include cancellation/addition/imbalance measurements.
-- Message text must not include GM token, Feishu app secret, tenant token, recipient IDs, environment dumps, or raw stack traces.
+- Message text must not include GM token, Feishu app secret, tenant token, recipient IDs, raw configuration dumps, or raw stack traces.
 
 ## Success Response Handling
 

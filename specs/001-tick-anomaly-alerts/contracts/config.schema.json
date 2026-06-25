@@ -9,12 +9,12 @@
     "gm": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["token_env", "serv_addr", "strategy_id"],
+      "required": ["token", "serv_addr", "strategy_id"],
       "properties": {
-        "token_env": {
+        "token": {
           "type": "string",
           "minLength": 1,
-          "description": "Environment variable containing the GM token."
+          "description": "GM token value loaded directly from the local YAML configuration."
         },
         "serv_addr": {
           "type": "string",
@@ -35,46 +35,49 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "app_id_env",
-        "app_secret_env",
-        "receive_id_type_env",
-        "receive_id_env",
-        "token_refresh_margin_seconds_env",
-        "max_attempts_env",
-        "retry_backoff_seconds_env"
+        "app_id",
+        "app_secret",
+        "receive_id_type",
+        "receive_id",
+        "token_refresh_margin_seconds",
+        "max_attempts",
+        "retry_backoff_seconds"
       ],
       "properties": {
-        "app_id_env": {
+        "app_id": {
           "type": "string",
           "minLength": 1
         },
-        "app_secret_env": {
+        "app_secret": {
           "type": "string",
           "minLength": 1
         },
-        "receive_id_type_env": {
+        "receive_id_type": {
           "type": "string",
-          "minLength": 1,
-          "description": "Environment variable containing one of: chat_id, open_id, user_id, union_id, email."
+          "enum": ["chat_id", "open_id", "user_id", "union_id", "email"]
         },
-        "receive_id_env": {
+        "receive_id": {
           "type": "string",
           "minLength": 1
         },
-        "token_refresh_margin_seconds_env": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Environment variable containing an integer >= 60."
+        "token_refresh_margin_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "default": 300
         },
-        "max_attempts_env": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Environment variable containing an integer between 1 and 10."
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
         },
-        "retry_backoff_seconds_env": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Environment variable containing comma-separated non-negative second values, for example 1,5,30."
+        "retry_backoff_seconds": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "default": [1, 5, 30]
         }
       }
     },

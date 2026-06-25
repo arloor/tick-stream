@@ -24,7 +24,7 @@ Build a Python 3.12 quantitative monitoring program that subscribes to tick data
 
 **Performance Goals**: Monitor 500 active symbols and make 95% of reportable anomalies visible to recipients within 5 seconds of accepting the triggering tick
 
-**Constraints**: Do not hardcode GM token, Feishu app secret, Feishu recipient IDs, Feishu recipient type, retry settings, or token refresh settings in source; all Feishu parameters are resolved from environment variables; keep notification retries bounded; prevent duplicate alert storms; avoid order placement and trading side effects
+**Constraints**: Do not hardcode GM token, Feishu app secret, Feishu recipient IDs, Feishu recipient type, retry settings, or token refresh settings in source; all runtime parameters are loaded from a local YAML config file; real credential-bearing config files must not be committed; keep notification retries bounded; prevent duplicate alert storms; avoid order placement and trading side effects
 
 **Scale/Scope**: Initial scope covers one watchlist, one Feishu notification destination set, price anomaly, momentum anomaly, and order book liquidity anomaly detection, replay validation, and runtime health reporting
 
@@ -109,8 +109,10 @@ Research output is recorded in [research.md](./research.md). Key decisions:
 
 - Use GM SDK event-driven tick subscription through Python 3.12.
 - Use deterministic anomaly detectors: short-window price jump, momentum z-score against a rolling baseline, and sustained order book liquidity anomalies based on large order additions, cancellations, and side imbalance.
+- Compute a broader interpretable feature layer for replay calibration: realized volatility burst, order flow imbalance, queue imbalance, depth/spread stress, cancellation/addition pressure, turnover burst, and optional relative-strength residuals.
+- Keep advanced methods such as VPIN, CUSUM/SR, Bayesian online changepoint detection, Isolation Forest/LOF, online Half-Space Trees, and Matrix Profile in research/backtest mode until replay metrics justify live alerting.
 - Use Feishu `tenant_access_token` authentication, cache tokens until near expiry, and send structured `post` messages through `POST /open-apis/im/v1/messages`.
-- Resolve all Feishu runtime parameters from environment variables named by the config, including app credentials, recipient type, recipient ID, retry policy, and token refresh margin.
+- Resolve GM and Feishu runtime parameters directly from the local YAML config, including app credentials, recipient type, recipient ID, retry policy, and token refresh margin.
 - Use JSONL audit logs and replay fixtures for validation before any live run.
 
 ## Phase 1: Design Summary
@@ -123,4 +125,4 @@ Design artifacts:
 - [contracts/feishu-message.md](./contracts/feishu-message.md): outbound Feishu message request/response contract.
 - [quickstart.md](./quickstart.md): setup and validation guide.
 
-Post-design constitution check: PASS. The design keeps secrets in configuration/environment, includes replayable detector validation, mocks external notification calls in tests, and does not include trading execution.
+Post-design constitution check: PASS. The design keeps secrets out of source code and expects real credential-bearing YAML configs to remain local, includes replayable detector validation, mocks external notification calls in tests, and does not include trading execution.
