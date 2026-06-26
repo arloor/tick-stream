@@ -22,7 +22,8 @@ class LiveRunner:
         self.audit = AuditWriter(Path(config.audit["dir"]))
         self.engine = DetectionEngine(config)
         self.suppression = SuppressionEngine()
-        self.notifier = notifier or FeishuNotifier(config.feishu)
+        symbol_names = {item.symbol: item.name for item in config.watchlist if item.name}
+        self.notifier = notifier or FeishuNotifier(config.feishu, symbol_names=symbol_names)
         self.gm_client = gm_client or GMClient(config, tick_handler=self.handle_tick)
         self.health = initial_health(active_symbol_count=len(config.active_symbols))
         self.aggregator = AlertWindowAggregator()

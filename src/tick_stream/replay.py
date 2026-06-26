@@ -43,7 +43,8 @@ def run_replay(
     engine = DetectionEngine(config)
     suppression = SuppressionEngine()
     audit = AuditWriter(Path(config.audit["dir"]))
-    notifier = notifier or FeishuNotifier(config.feishu)
+    symbol_names = {item.symbol: item.name for item in config.watchlist if item.name}
+    notifier = notifier or FeishuNotifier(config.feishu, symbol_names=symbol_names)
     summary = ReplaySummary(dry_run_notify=dry_run_notify)
     aggregator = AlertWindowAggregator()
 
