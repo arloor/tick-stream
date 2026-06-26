@@ -126,7 +126,33 @@ Expected:
 - Feishu payloads validate against [contracts/feishu-message.md](./contracts/feishu-message.md).
 - No HTTP request is sent when `--dry-run-notify` is set.
 
-## 5. Test Feishu Authentication and Message Contract
+## 5. Partition Historical Tick Files
+
+For larger GM history pulls, partition raw JSONL by trading date and symbol, while also generating full-day merged files for market-wide replay:
+
+```bash
+tick-stream partition-ticks \
+  --input var/replay/history_ticks_20260624_20260626.jsonl \
+  --out-dir var/replay/ticks \
+  --merged-dir var/replay/merged
+```
+
+Output layout:
+
+```text
+var/replay/ticks/
+└── trading_date=2026-06-25/
+    ├── SHSE.000001.jsonl
+    ├── SHSE.600104.jsonl
+    └── manifest.json
+
+var/replay/merged/
+└── watchlist_2026-06-25.jsonl
+```
+
+Use the partition directory for single-day/single-symbol inspection and the merged daily file when replaying the whole watchlist in event-time order.
+
+## 6. Test Feishu Authentication and Message Contract
 
 Use a dedicated test recipient before production groups:
 
@@ -140,7 +166,7 @@ Expected:
 - One structured Feishu `post` message is sent.
 - Audit log records notification status as `sent` and stores the returned message ID when available.
 
-## 6. Run Live Monitoring
+## 7. Run Live Monitoring
 
 ```bash
 tick-stream run --config config/watchlist.yml --blocking

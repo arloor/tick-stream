@@ -9,6 +9,7 @@ from .config import ConfigError, load_config
 from .health import read_health
 from .replay import replay_from_files
 from .runner import LiveRunner
+from .tick_store import partition_tick_file
 from .utils import redact, stable_json
 
 
@@ -28,6 +29,17 @@ def cmd_replay(args: argparse.Namespace) -> int:
     except ConfigError as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
         return 2
+    except Exception as exc:
+        print(json.dumps({"status": "error", "error": str(redact({"error": str(exc)})["error"])}, ensure_ascii=False))
+        return 1
+    print(json.dumps(summary.as_dict(), ensure_ascii=False))
+    return 0
+
+
+def cmd_partition_ticks(args: argparse.Namespace) -> int:
+    dates = set(args.date or []) or None
+    try:
+        summary = partition_tick_file(args.input, args.out_dir, merged_dir=args.merged_dir, dates=dates)
     except Exception as exc:
         print(json.dumps({"status": "error", "error": str(redact({"error": str(exc)})["error"])}, ensure_ascii=False))
         return 1
@@ -69,6 +81,12 @@ def build_parser() -> argparse.ArgumentParser:
     replay.add_argument("--ticks", required=True)
     replay.add_argument("--dry-run-notify", action="store_true")
     replay.set_defaults(func=cmd_replay)
+    partition = sub.add_parser("partition-ticks")
+    partition.add_argument("--input", required=True, help="source JSONL tick file")
+    partition.add_argument("--out-dir", default="var/replay/ticks", help="partitioned tick output root")
+    partition.add_argument("--merged-dir", default="var/replay/merged", help="optional merged daily JSONL output root")
+    partition.add_argument("--date", action="append", help="optional trading date filter, repeatable, e.g. 2026-06-25")
+    partition.set_defaults(func=cmd_partition_ticks)
     run = sub.add_parser("run")
     run.add_argument("--config", required=True)
     run.add_argument("--blocking", action="store_true", help="enter GM SDK event loop and process live ticks")

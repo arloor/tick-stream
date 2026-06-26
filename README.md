@@ -65,6 +65,27 @@ tick-stream validate-config --config config/watchlist.local.yml
 tick-stream replay --config config/watchlist.local.yml --ticks tests/fixtures/ticks/sample.jsonl --dry-run-notify
 ```
 
+切分历史 tick 文件，生成按日期/标的分片和单日合并文件：
+
+```bash
+tick-stream partition-ticks \
+  --input var/replay/history_ticks_20260624_20260626.jsonl \
+  --out-dir var/replay/ticks \
+  --merged-dir var/replay/merged
+```
+
+回放单日合并文件：
+
+```bash
+tick-stream replay --config config/watchlist.local.yml --ticks var/replay/merged/watchlist_2026-06-25.jsonl --dry-run-notify
+```
+
+也可以直接回放某个日期分区目录，程序会按事件时间排序：
+
+```bash
+tick-stream replay --config config/watchlist.local.yml --ticks var/replay/ticks/trading_date=2026-06-25 --dry-run-notify
+```
+
 回放一条告警并真实发送飞书消息：
 
 ```bash
@@ -179,3 +200,22 @@ https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal
 - 动量通知不再只看 z-score；需要足够大的实际 impulse、成交活跃度放大，或“盘口压力 + 最低成交活跃度”确认。
 - 单独盘口通知需要同时满足严重等级、短窗价格变化和成交活跃度放大；大部分盘口抖动只进入审计，不推飞书。
 - 通知量从 v4 的 `1,182` 条压到 v6 的 `90` 条，主要减少的是缺少成交/价格确认的盘口和动量噪音。
+
+## Tick 文件组织
+
+历史 tick 建议同时保留两种形态：
+
+```text
+var/replay/ticks/
+└── trading_date=2026-06-25/
+    ├── SHSE.000001.jsonl
+    ├── SHSE.600104.jsonl
+    └── manifest.json
+
+var/replay/merged/
+└── watchlist_2026-06-25.jsonl
+```
+
+- `trading_date=.../SYMBOL.jsonl`：用于单票排查、profile 校准和局部重放。
+- `manifest.json`：记录当天 symbol 数、tick 数、文件路径和首末 tick 时间。
+- `merged/watchlist_YYYY-MM-DD.jsonl`：用于全标的市场回放，保持事件时间顺序，适合检查告警总量和联动上下文。

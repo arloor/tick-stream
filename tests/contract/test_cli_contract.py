@@ -34,6 +34,22 @@ def test_replay_dry_run_cli(capsys):
     assert out["notifications_sent"] == 0
 
 
+def test_partition_ticks_cli(capsys, tmp_path):
+    code = main([
+        "partition-ticks",
+        "--input",
+        "tests/fixtures/ticks/sample.jsonl",
+        "--out-dir",
+        str(tmp_path / "ticks"),
+        "--merged-dir",
+        str(tmp_path / "merged"),
+    ])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["ticks_written"] == 12
+    assert (tmp_path / "ticks" / "trading_date=2026-06-25" / "manifest.json").exists()
+
+
 def test_health_cli(capsys, tmp_path):
     code = main(["health", "--audit-dir", str(tmp_path)])
     out = json.loads(capsys.readouterr().out)

@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
-import json
 
 from .audit import AuditWriter
 from .alerts import AlertWindowAggregator, apply_alert_suppression_key, attach_alert_window, split_reportable_events
@@ -12,6 +11,7 @@ from .detection.engine import DetectionEngine
 from .detection.suppression import SuppressionEngine
 from .models import AnomalyEvent, EventStatus, QualityStatus
 from .notifier import FeishuNotifier
+from .tick_store import read_tick_rows
 from .utils import to_jsonable
 
 
@@ -31,11 +31,7 @@ class ReplaySummary:
 
 
 def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
-    rows = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            rows.append(json.loads(line))
-    return rows
+    return read_tick_rows(path)
 
 
 def run_replay(
