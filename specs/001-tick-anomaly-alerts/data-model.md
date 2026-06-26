@@ -140,6 +140,7 @@ Fields:
 - `min_ticks_baseline_window`: default 20.
 - `severity_thresholds`: mapping for `warning`, `high`, and `critical`.
 - `cooldown_seconds`: default 180.
+- `opposite_direction_guard_seconds`: suppresses short-window opposite-direction alerts for the same symbol and primary anomaly type so whipsaw moves are audited without being sent as separate ordinary notifications.
 - `ignored_sessions`: optional market time windows where detection is suppressed.
 
 Validation:

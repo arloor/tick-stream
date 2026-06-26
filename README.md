@@ -199,6 +199,7 @@ https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal
 - `volume_burst_ratio` 已使用 GM `last_volume`/`last_amount` 计算，不再是空值或恒为 0。
 - 动量通知不再只看 z-score；需要足够大的实际 impulse、成交活跃度放大，或“盘口压力 + 最低成交活跃度”确认。
 - 单独盘口通知需要同时满足严重等级、短窗价格变化和成交活跃度放大；大部分盘口抖动只进入审计，不推飞书。
+- 同一标的同一主异常类型在 `opposite_direction_guard_seconds` 内反向触发时，会按剧烈震荡/whipsaw 处理，只写 suppression 审计，不再作为普通反向告警单独推送。
 - 通知量从 v4 的 `1,182` 条压到 v6 的 `90` 条，主要减少的是缺少成交/价格确认的盘口和动量噪音。
 
 ## Tick 文件组织
