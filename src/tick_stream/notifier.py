@@ -35,8 +35,11 @@ class FeishuNotifier:
             f"方向：{_direction_label(primary.direction)}",
             f"触发时间：{primary.trigger_time.isoformat()}",
             f"最新价：{primary.trigger_price}",
-            f"等级：{_severity_label(primary.severity)}",
         ]
+        current_return_line = _current_return_line(primary)
+        if current_return_line:
+            lines.append(current_return_line)
+        lines.append(f"等级：{_severity_label(primary.severity)}")
         for event in events:
             lines.append(f"{_anomaly_label(event.anomaly_type)}：{_format_measurement(event)}")
         lines.append(f"原因：{_format_reason(primary)}")
@@ -146,6 +149,8 @@ def _severity_label(severity: Any) -> str:
 def _format_measurement(event: AnomalyEvent) -> str:
     parts = []
     for key, value in event.measurement.items():
+        if key in {"current_return_pct", "current_return_basis"}:
+            continue
         parts.append(f"{_measurement_label(key)}={_format_measurement_value(key, value)}")
     return "；".join(parts) if parts else "无额外测量值"
 
@@ -163,13 +168,15 @@ def _measurement_label(key: str) -> str:
         "cancel_add_ratio": "撤挂压力",
         "queue_imbalance_ratio": "买卖盘失衡",
         "order_flow_imbalance": "盘口净压力",
+        "current_return_pct": "当前涨跌幅",
+        "current_return_basis": "涨跌幅口径",
     }.get(key, key)
 
 
 def _format_measurement_value(key: str, value: Any) -> str:
     if not isinstance(value, (int, float)):
         return str(value)
-    if key in {"price_return_pct", "impulse_return_pct"}:
+    if key in {"price_return_pct", "impulse_return_pct", "current_return_pct"}:
         return f"{value:.2f}%"
     if key == "velocity_pct_per_second":
         return f"{value:.3f}%/秒"
@@ -182,6 +189,15 @@ def _format_measurement_value(key: str, value: Any) -> str:
     if key == "order_flow_imbalance":
         return f"{value:,.0f}"
     return f"{value:.2f}"
+
+
+def _current_return_line(event: AnomalyEvent) -> str | None:
+    value = event.measurement.get("current_return_pct")
+    if not isinstance(value, (int, float)):
+        return None
+    basis = event.measurement.get("current_return_basis")
+    label = f"当前涨跌幅（较{basis}）" if basis else "当前涨跌幅"
+    return f"{label}：{value:.2f}%"
 
 
 def _format_reason(event: AnomalyEvent) -> str:

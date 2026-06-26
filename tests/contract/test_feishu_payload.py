@@ -68,6 +68,8 @@ def test_feishu_momentum_payload_uses_chinese_labels_and_reason():
             "velocity_pct_per_second": 0.30501089324618863,
             "nonzero_baseline_samples": 11,
             "alert_aggregation_window_seconds": 30,
+            "current_return_pct": 4.2,
+            "current_return_basis": "开盘",
         },
         reason="momentum z-score 99.00 exceeds 6.50 with 2.75% impulse return",
     )
@@ -77,6 +79,8 @@ def test_feishu_momentum_payload_uses_chinese_labels_and_reason():
     assert "动量异常" in content
     assert "动量Z分数=99.00" in content
     assert "脉冲涨跌幅=2.75%" in content
+    assert "当前涨跌幅（较开盘）：4.20%" in content
+    assert "当前涨跌幅=4.20%" not in content
     assert "原因：10秒脉冲窗口" in content
     assert "momentum_spike" not in content
     assert "momentum z-score" not in content
