@@ -8,14 +8,14 @@ from tick_stream.models import AnomalyEvent, AnomalyRuleSet, AnomalyType, Direct
 from tick_stream.utils import pct_change
 
 
-def robust_z(value: float, samples: list[float]) -> float:
+def robust_z(value: float, samples: list[float], zero_mad_min_abs_value: float = 0.0) -> float:
     if not samples:
         return 0.0
     med = median(samples)
     deviations = [abs(x - med) for x in samples]
     mad = median(deviations)
     if mad == 0:
-        return 99.0 if value != med else 0.0
+        return 99.0 if abs(value - med) >= zero_mad_min_abs_value and value != med else 0.0
     return 0.6745 * (value - med) / mad
 
 
@@ -38,7 +38,11 @@ def detect_momentum(ticks: list[TickRecord], feature: FeatureSnapshot, rule: Ano
     if len(impulse) < rule.min_ticks_short_window or impulse[0].last_price is None:
         return None
     seconds = max((latest.event_time - impulse[0].event_time).total_seconds(), 1.0)
-    velocity = pct_change(impulse[0].last_price, latest.last_price) / seconds
+    impulse_return = pct_change(impulse[0].last_price, latest.last_price)
+    if abs(impulse_return) < rule.momentum_min_return_pct:
+        feature.momentum_z = 0.0
+        return None
+    velocity = impulse_return / seconds
     baseline = []
     for i in range(1, len(ticks)):
         prev, cur = ticks[i - 1], ticks[i]
@@ -46,7 +50,12 @@ def detect_momentum(ticks: list[TickRecord], feature: FeatureSnapshot, rule: Ano
             continue
         dt = max((cur.event_time - prev.event_time).total_seconds(), 1.0)
         baseline.append(pct_change(prev.last_price, cur.last_price) / dt)
-    z = robust_z(velocity, baseline)
+    nonzero_baseline = [value for value in baseline if abs(value) > 1e-9]
+    if len(nonzero_baseline) < rule.momentum_min_nonzero_baseline_samples and abs(impulse_return) < rule.momentum_zero_mad_min_return_pct:
+        feature.momentum_z = 0.0
+        return None
+    zero_mad_min_abs_value = rule.momentum_zero_mad_min_return_pct / seconds
+    z = robust_z(velocity, baseline, zero_mad_min_abs_value=zero_mad_min_abs_value)
     feature.momentum_z = z
     if abs(z) < rule.momentum_z_threshold:
         return None
@@ -60,8 +69,14 @@ def detect_momentum(ticks: list[TickRecord], feature: FeatureSnapshot, rule: Ano
         severity=severity,
         trigger_time=latest.event_time,
         trigger_price=latest.last_price,
-        measurement={"momentum_z": z, "impulse_seconds": rule.momentum_impulse_seconds, "velocity_pct_per_second": velocity},
-        reason=f"momentum z-score {z:.2f} exceeds {rule.momentum_z_threshold:.2f}",
+        measurement={
+            "momentum_z": z,
+            "impulse_seconds": rule.momentum_impulse_seconds,
+            "impulse_return_pct": impulse_return,
+            "velocity_pct_per_second": velocity,
+            "nonzero_baseline_samples": len(nonzero_baseline),
+        },
+        reason=f"momentum z-score {z:.2f} exceeds {rule.momentum_z_threshold:.2f} with {impulse_return:.2f}% impulse return",
         suppression_key=f"{latest.symbol}:momentum_spike:{direction.value}",
         created_at=datetime.now(timezone.utc),
         feature_snapshot_ref=f"{feature.symbol}:{feature.event_time.isoformat()}",

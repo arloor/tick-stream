@@ -255,3 +255,17 @@ Task: "T053 [US3] Implement GM SDK initialization and subscription in src/tick_s
 - Keep real YAML configs with credentials out of version control.
 - Every Feishu notification must be explainable from anomaly measurements.
 - Tier 2 and Tier 3 research methods should remain audited/backtest-only unless later tasks explicitly promote them to live alerting.
+
+---
+
+## Phase 7: Post-Implementation Replay Calibration
+
+**Purpose**: Incorporate real GM history replay findings into the detection and notification design.
+
+- [X] T066 Add momentum actual-return, non-zero baseline sample, and zero-MAD safeguards in `src/tick_stream/detection/momentum.py`
+- [X] T067 Add reportability filtering for momentum confirmation and standalone order book severity gates in `src/tick_stream/detection/reporting.py`
+- [X] T068 Add symbol-level alert window aggregation and compacted grouped notifications in `src/tick_stream/alerts.py`
+- [X] T069 Apply aggregation and symbol-direction cooldown consistently in replay and live paths in `src/tick_stream/replay.py` and `src/tick_stream/runner.py`
+- [X] T070 Update required configuration fields for momentum confirmation and alert aggregation in `specs/001-tick-anomaly-alerts/contracts/config.schema.json`
+- [X] T071 Update YAML examples and fixtures with board/market-cap profiles, momentum confirmation thresholds, and alert aggregation windows in `config/watchlist.example.yml`, `tests/fixtures/config/valid_watchlist.yml`, and `tests/fixtures/config/watchlist_variant.yml`
+- [X] T072 Re-run GM history replay for `2026-06-24` through `2026-06-26` and record v4 dry-run notification results in `specs/001-tick-anomaly-alerts/quickstart.md`

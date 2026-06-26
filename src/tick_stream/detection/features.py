@@ -20,9 +20,9 @@ def compute_features(ticks: list[TickRecord], rule: AnomalyRuleSet) -> FeatureSn
     base_vol = pstdev(base_returns) if len(base_returns) >= 2 else 0.0
     realized_vol_ratio = vol / base_vol if base_vol > 0 else (1.0 if vol == 0 else 99.0)
 
-    volumes = [t.volume or 0.0 for t in short]
-    all_volumes = [t.volume or 0.0 for t in ticks]
-    volume_burst = (sum(volumes) / max(mean(all_volumes), 1.0)) if all_volumes else 0.0
+    short_activity = [(t.volume if t.volume and t.volume > 0 else t.turnover) or 0.0 for t in short]
+    baseline_activity = [(t.volume if t.volume and t.volume > 0 else t.turnover) or 0.0 for t in ticks]
+    volume_burst = (mean(short_activity) / max(mean(baseline_activity), 1.0)) if baseline_activity else 0.0
     book = latest.order_book
     if book and book.depth_available:
         total_add = book.bid_added_quantity + book.ask_added_quantity

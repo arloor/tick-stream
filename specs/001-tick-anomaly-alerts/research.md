@@ -26,14 +26,12 @@ The implementation will not call GM trading APIs such as order placement, cancel
 Use three independently testable detectors:
 
 1. **Price jump detector**: For each symbol, maintain a rolling short window, default 30 seconds. Trigger when the latest valid price changes by at least the configured absolute return threshold, default 1.5%, against the earliest valid tick in the window, or exceeds a robust baseline threshold derived from recent short-window returns.
-2. **Momentum detector**: Compute short-term velocity over a default 10-second impulse window and compare it with a default 3-minute baseline using a robust z-score based on median and median absolute deviation. Trigger when absolute z-score is at least 3.0 and there are enough ticks in both windows.
-3. **Order book liquidity detector**: When bid/ask depth fields are available, maintain a default 30-second order book window. Trigger only when sustained large order additions, large cancellations, or buy/sell side imbalance exceeds configured thresholds for at least two consecutive accepted ticks. By default, order book anomalies can create standalone alerts only at `high` or `critical` severity; lower-severity order book signals enhance simultaneous price or momentum events.
+2. **Momentum detector**: Compute short-term velocity over a default 10-second impulse window and compare it with a default 3-minute baseline using a robust z-score based on median and median absolute deviation. Trigger only when absolute z-score is high enough, the actual impulse return exceeds a configurable minimum, enough non-zero baseline samples exist, and zero-MAD cases pass a stricter minimum-return safeguard.
+3. **Order book liquidity detector**: When bid/ask depth fields are available, maintain a default 30-second order book window. Trigger only when sustained large order additions, large cancellations, or buy/sell side imbalance exceeds configured thresholds for the configured consecutive accepted ticks. By default, order book anomalies can create standalone notifications only above the configured standalone severity; lower-severity order book signals remain audit-only or enhance simultaneous price or momentum events.
 
 Severity defaults:
 
-- `warning`: price move >= 1.5%, momentum z-score >= 3.0, or order book signal qualifies as an enhancer
-- `high`: price move >= 2.5%, momentum z-score >= 4.0, cancellation/addition ratio >= 35%, or one-side book imbalance >= 70%
-- `critical`: price move >= 3.5%, momentum z-score >= 5.0, cancellation/addition ratio >= 50%, or one-side book imbalance >= 85%
+Severity defaults are profile-specific and are calibrated by board, market-cap bucket, and special status. Each profile includes thresholds for price return, momentum z-score, order book cancellation/addition ratio, and one-side book imbalance. Momentum additionally requires actual impulse-return confirmation so tiny tick changes do not become critical alerts only because the baseline median absolute deviation is zero.
 
 **Rationale**: These rules are transparent, reproducible under replay, robust to outliers, and usable before labeled production data exists. The combination catches obvious jumps, gradual acceleration, and suspicious liquidity shifts while avoiding alerts from one-tick order book flicker.
 
@@ -41,7 +39,7 @@ Severity defaults:
 
 - Machine learning anomaly detection: rejected for v1 because it needs historical labeling, monitoring, and explainability work.
 - Fixed percent-only rules: too noisy across stocks with different liquidity and volatility.
-- Volume-only momentum: not reliable when tick volume fields are absent or inconsistent.
+- Volume-only momentum: not reliable when tick volume fields are absent or inconsistent, but useful as a reportability confirmation signal when paired with z-score and actual return.
 - Treat every large cancellation as an alert: rejected because normal A-share order book updates can be bursty; sustained confirmation and severity gating are needed.
 
 ## Decision: Expanded anomaly method catalogue and phased adoption
@@ -53,7 +51,7 @@ Keep v1 alert decisions deterministic, but compute and audit a richer set of int
 These methods are transparent, fast, explainable in Feishu messages, and testable with small fixtures.
 
 - **Short-window return shock**: Compare latest price with the earliest accepted tick in a short window and with a robust recent-return baseline.
-- **Momentum acceleration**: Compare short impulse velocity against a longer baseline using robust z-score.
+- **Momentum acceleration**: Compare short impulse velocity against a longer baseline using robust z-score, but require minimum actual impulse return, enough non-zero baseline samples, and zero-MAD safeguards before creating a momentum event.
 - **Realized volatility burst**: Track short-window realized volatility and alert when it jumps relative to the same symbol's intraday baseline. This catches violent oscillation even when net return is small.
 - **Order flow imbalance (OFI)**: Track net pressure from best bid/ask quantity changes, limit order additions, market-order-like consumption, and cancellations. Research on order book events finds short-horizon price changes are more robustly related to order flow imbalance than to raw trade volume.
 - **Queue imbalance**: Track bid-side versus ask-side displayed quantity at top levels. Extreme imbalance is a pressure signal, but should require persistence and market-state filters.
@@ -88,7 +86,7 @@ These are not standalone anomaly methods, but they strongly reduce false positiv
 
 - **Session-aware thresholds**: Use stricter rules near open, close, auction windows, after halts/suspensions, and around limit-up/limit-down states.
 - **Liquidity bucket thresholds**: Separate thresholds for high-liquidity, mid-liquidity, and thinly traded symbols.
-- **Minimum evidence score**: Require at least two independent signals for `high` or `critical` unless one signal is extremely large.
+- **Minimum evidence score / reportability gate**: Detect candidate events first, then decide whether they are reportable. Momentum-only events require actual return, direct volume/turnover burst, or order book pressure accompanied by minimum volume/turnover activity before Feishu preparation. Standalone order book events require configured severity plus short-window price movement and volume/turnover burst confirmation.
 - **Cooldown with escalation**: Continue suppressing duplicates, but allow severity escalation when new evidence appears.
 - **Explainability requirement**: Every alert must include the top contributing signals, not only a model score.
 
@@ -117,16 +115,17 @@ Before detection, normalize ticks and reject records with missing symbol, non-po
 
 - Run detectors on raw ticks: rejected because it would produce noisy and hard-to-debug alerts.
 
-## Decision: Cooldown plus aggregation for repeated alerts
+## Decision: Reportability gate, alert aggregation window, and cooldown
 
-Use a suppression key of `(symbol, anomaly_type, direction)`. During the default 180-second cooldown, suppress duplicate alerts unless severity increases. If severity increases, send an update notification that includes the previous severity and latest measurement. If order book anomalies enhance a price or momentum event, group them under the same notification instead of sending separate messages.
+Use a two-stage alert hygiene flow. First, classify detected anomalies as reportable or audit-only. Price jumps are reportable. Standalone order book events must meet their configured minimum severity and also have short-window price movement plus volume/turnover burst confirmation. Momentum-only events require sufficient actual impulse return, direct volume/turnover burst, or order book pressure accompanied by minimum volume/turnover activity. Second, aggregate reportable events for the same symbol within `alert_aggregation_window_seconds`, default 30 seconds, and send one structured Feishu message containing the compacted signal set. After aggregation, use a suppression key of `(symbol, alert, direction)` during the configured cooldown window to suppress duplicate symbol-direction alerts unless severity escalates.
 
-**Rationale**: This satisfies the spec's duplicate reduction target while still escalating meaningful changes.
+**Rationale**: Replay on 2026-06-24 to 2026-06-26 showed raw momentum z-score generated excessive noise when tick prices were flat and MAD was zero, and standalone order book pressure generated many noisy notifications without trade activity confirmation. Separating detection from reportability preserves audit data for calibration while keeping Feishu focused on actionable or confirmed events. Window aggregation also prevents related price, momentum, and order book evidence from appearing as separate messages. With GM `last_volume`/`last_amount` normalized into the feature layer, the v6 dry-run replay accepted `315,577` ticks, detected `5,911` candidate anomalies, and prepared `90` notifications (`73` momentum events, `17` order book events, and `1` price-jump event; one notification grouped two events).
 
 **Alternatives considered**:
 
 - Send every trigger: rejected due to alert storms.
 - One alert per symbol per day: too coarse and likely to hide later important moves.
+- Send each reportable signal separately: rejected because correlated microstructure signals produce fragmented notifications.
 
 ## Decision: Feishu message creation with tenant_access_token
 

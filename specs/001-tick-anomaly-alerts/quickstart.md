@@ -53,11 +53,22 @@ rules:
     momentum_impulse_seconds: 10
     momentum_baseline_seconds: 180
     momentum_z_threshold: 3.0
+    momentum_min_return_pct: 0.45
+    momentum_min_nonzero_baseline_samples: 5
+    momentum_zero_mad_min_return_pct: 1.0
+    momentum_notify_min_return_pct: 1.1
+    momentum_notify_volume_burst_ratio: 2.2
+    momentum_notify_orderbook_min_volume_burst_ratio: 1.2
+    momentum_notify_orderbook_imbalance_ratio: 0.90
+    momentum_notify_cancel_add_ratio: 0.60
+    alert_aggregation_window_seconds: 30
     orderbook_window_seconds: 30
     orderbook_min_consecutive_ticks: 2
     orderbook_cancel_ratio_threshold: 0.35
     orderbook_imbalance_ratio_threshold: 0.70
     orderbook_standalone_min_severity: high
+    orderbook_notify_min_return_pct: 0.5
+    orderbook_notify_volume_burst_ratio: 2.5
     min_ticks_short_window: 3
     min_ticks_baseline_window: 20
     cooldown_seconds: 180
@@ -163,17 +174,18 @@ Expected:
 | Momentum replay | `replay --dry-run-notify` | Momentum anomaly event generated |
 | Order book replay | `replay --dry-run-notify` | Sustained cancellation or imbalance event generated when depth fields are present |
 | Feature audit replay | `replay --dry-run-notify` | Feature snapshots are written with unavailable-feature reasons when data is missing |
-| Duplicate cooldown | `replay --dry-run-notify` | Duplicate notifications suppressed |
+| Duplicate cooldown | `replay --dry-run-notify` | Duplicate symbol-direction notifications suppressed |
+| Alert aggregation | `replay --dry-run-notify` | Reportable events for the same symbol inside `alert_aggregation_window_seconds` are grouped into one notification |
 | Feishu token failure | mocked replay/integration test | Token refresh or sanitized failure |
 | Feishu 5xx | mocked replay/integration test | Bounded retry then sent/failed state |
 | Live startup | `run` | GM and Feishu health visible |
 
 ## Implementation Validation Notes
 
-Validated on 2026-06-25 with the local development environment.
+Validated on 2026-06-26 with the local development environment.
 
 - Automated tests: `.venv/bin/python -m pytest -q`
-- Result: `25 passed in 0.30s`
+- Result: `32 passed in 0.26s`
 - Config validation: `PYTHONPATH=src .venv/bin/python -m tick_stream.cli validate-config --config tests/fixtures/config/valid_watchlist.yml`
 - Config result: `{"status": "ok", "symbol_count": 2, "rule_profiles": ["default"]}`
 - Dry-run replay: `PYTHONPATH=src .venv/bin/python -m tick_stream.cli replay --config tests/fixtures/config/valid_watchlist.yml --ticks tests/fixtures/ticks/sample.jsonl --dry-run-notify`
@@ -186,3 +198,5 @@ Validated on 2026-06-25 with the local development environment.
 - Real blocking live loop: `timeout 10s env PYTHONPATH=src .venv/bin/python -u -m tick_stream.cli run --config config/watchlist.local.yml --blocking` connected to market/trade services and processed live tick callbacks until intentionally stopped by `timeout` with exit code `124`.
 - Real Feishu validation: `tenant_access_token` acquisition succeeded and replaying `var/replay/single-alert-local.jsonl` sent one structured `post` notification with `notifications_sent: 1`.
 - Feishu compatibility note: for `im/v1/messages` with `msg_type=post`, the accepted content shape is a JSON-serialized object with `zh_cn` at the top level. A `post.zh_cn` wrapper returned Feishu error `230001 invalid message content`.
+- Historical GM replay calibration: pulled `329,673` ticks for `25` symbols across `2026-06-24` to `2026-06-26` using GM `history(..., frequency="tick")`; dry-run replay accepted `315,577` ticks and detected `5,911` anomalies after momentum confirmation safeguards.
+- Alert hygiene validation: v6 dry-run replay with GM `last_volume`/`last_amount` normalized into `volume_burst_ratio`, momentum order-book confirmation requiring minimum volume/turnover activity, and standalone order-book alerts requiring price plus volume confirmation prepared `90` notifications from `5,911` detected candidate anomalies. This is down from v4's `1,182` notifications and from `3,594` before momentum reportability filtering.

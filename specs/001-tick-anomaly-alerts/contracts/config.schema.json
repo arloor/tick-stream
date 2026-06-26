@@ -129,11 +129,22 @@
           "momentum_impulse_seconds",
           "momentum_baseline_seconds",
           "momentum_z_threshold",
+          "momentum_min_return_pct",
+          "momentum_min_nonzero_baseline_samples",
+          "momentum_zero_mad_min_return_pct",
+          "momentum_notify_min_return_pct",
+          "momentum_notify_volume_burst_ratio",
+          "momentum_notify_orderbook_min_volume_burst_ratio",
+          "momentum_notify_orderbook_imbalance_ratio",
+          "momentum_notify_cancel_add_ratio",
+          "alert_aggregation_window_seconds",
           "orderbook_window_seconds",
           "orderbook_min_consecutive_ticks",
           "orderbook_cancel_ratio_threshold",
           "orderbook_imbalance_ratio_threshold",
           "orderbook_standalone_min_severity",
+          "orderbook_notify_min_return_pct",
+          "orderbook_notify_volume_burst_ratio",
           "cooldown_seconds"
         ],
         "properties": {
@@ -162,6 +173,53 @@
             "exclusiveMinimum": 0,
             "default": 3.0
           },
+          "momentum_min_return_pct": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.3
+          },
+          "momentum_min_nonzero_baseline_samples": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 5
+          },
+          "momentum_zero_mad_min_return_pct": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.8
+          },
+          "momentum_notify_min_return_pct": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.8
+          },
+          "momentum_notify_volume_burst_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "default": 2.0
+          },
+          "momentum_notify_orderbook_min_volume_burst_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1.0
+          },
+          "momentum_notify_orderbook_imbalance_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.9
+          },
+          "momentum_notify_cancel_add_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.6
+          },
+          "alert_aggregation_window_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 30
+          },
           "orderbook_window_seconds": {
             "type": "integer",
             "minimum": 1,
@@ -188,6 +246,16 @@
             "type": "string",
             "enum": ["warning", "high", "critical"],
             "default": "high"
+          },
+          "orderbook_notify_min_return_pct": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0.4
+          },
+          "orderbook_notify_volume_burst_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "default": 2.0
           },
           "min_ticks_short_window": {
             "type": "integer",

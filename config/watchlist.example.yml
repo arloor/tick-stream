@@ -1,24 +1,24 @@
 gm:
-  token: "replace-with-local-gm-token"
-  serv_addr: "192.168.5.127:7001"
-  strategy_id: "replace-with-strategy-id"
+  token: replace-with-local-gm-token
+  serv_addr: 192.168.5.127:7001
+  strategy_id: replace-with-strategy-id
   mode: live
-
 feishu:
-  app_id: "cli_xxxxxxxxxxxxxxxx"
-  app_secret: "replace-with-app-secret"
+  app_id: cli_xxxxxxxxxxxxxxxx
+  app_secret: replace-with-app-secret
   receive_id_type: chat_id
-  receive_id: "oc_xxxxxxxxxxxxxxxx"
+  receive_id: oc_xxxxxxxxxxxxxxxx
   token_refresh_margin_seconds: 300
   max_attempts: 3
-  retry_backoff_seconds: [1, 5, 30]
-
+  retry_backoff_seconds:
+  - 1
+  - 5
+  - 30
 watchlist:
-  - symbol: SHSE.600519
-    name: "贵州茅台"
-    active: true
-    rule_profile: default
-
+- symbol: SHSE.600519
+  name: 贵州茅台
+  active: true
+  rule_profile: default
 rules:
   default:
     price_window_seconds: 30
@@ -29,8 +29,10 @@ rules:
     orderbook_window_seconds: 30
     orderbook_min_consecutive_ticks: 2
     orderbook_cancel_ratio_threshold: 0.35
-    orderbook_imbalance_ratio_threshold: 0.70
+    orderbook_imbalance_ratio_threshold: 0.7
     orderbook_standalone_min_severity: high
+    orderbook_notify_min_return_pct: 0.5
+    orderbook_notify_volume_burst_ratio: 2.5
     min_ticks_short_window: 3
     min_ticks_baseline_window: 20
     cooldown_seconds: 180
@@ -39,21 +41,29 @@ rules:
         price_return_pct: 1.5
         momentum_z: 3.0
         orderbook_cancel_ratio: 0.25
-        orderbook_imbalance_ratio: 0.60
+        orderbook_imbalance_ratio: 0.6
       high:
         price_return_pct: 2.5
         momentum_z: 4.0
         orderbook_cancel_ratio: 0.35
-        orderbook_imbalance_ratio: 0.70
+        orderbook_imbalance_ratio: 0.7
       critical:
         price_return_pct: 3.5
         momentum_z: 5.0
-        orderbook_cancel_ratio: 0.50
+        orderbook_cancel_ratio: 0.5
         orderbook_imbalance_ratio: 0.85
     ignored_sessions:
-      - start: "09:25:00"
-        end: "09:30:00"
-
+    - start: 09:25:00
+      end: 09:30:00
+    momentum_min_return_pct: 0.45
+    momentum_min_nonzero_baseline_samples: 5
+    momentum_zero_mad_min_return_pct: 1.0
+    momentum_notify_min_return_pct: 1.1
+    momentum_notify_volume_burst_ratio: 2.2
+    momentum_notify_orderbook_min_volume_burst_ratio: 1.2
+    momentum_notify_orderbook_imbalance_ratio: 0.9
+    momentum_notify_cancel_add_ratio: 0.6
+    alert_aggregation_window_seconds: 30
 audit:
   dir: var/audit
   write_tick_summaries: true

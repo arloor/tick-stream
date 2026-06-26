@@ -120,11 +120,22 @@ Fields:
 - `momentum_impulse_seconds`: default 10.
 - `momentum_baseline_seconds`: default 180.
 - `momentum_z_threshold`: default 3.0.
+- `momentum_min_return_pct`: minimum actual impulse return required before momentum can trigger.
+- `momentum_min_nonzero_baseline_samples`: minimum non-zero baseline velocity samples required before trusting z-score in low-volatility windows.
+- `momentum_zero_mad_min_return_pct`: stricter impulse return required when the baseline median absolute deviation is zero.
+- `momentum_notify_min_return_pct`: actual impulse return that makes a momentum event reportable without other confirmation.
+- `momentum_notify_volume_burst_ratio`: volume/turnover burst that confirms a momentum event for notification.
+- `momentum_notify_orderbook_min_volume_burst_ratio`: minimum volume/turnover activity required when order book pressure is used to confirm a momentum event.
+- `momentum_notify_orderbook_imbalance_ratio`: order book imbalance that can confirm a momentum event only when minimum volume/turnover activity is also present.
+- `momentum_notify_cancel_add_ratio`: cancellation/addition pressure that can confirm a momentum event only when minimum volume/turnover activity is also present.
+- `alert_aggregation_window_seconds`: time window for grouping reportable events of the same symbol into one notification.
 - `orderbook_window_seconds`: default 30.
 - `orderbook_min_consecutive_ticks`: default 2.
 - `orderbook_cancel_ratio_threshold`: default 0.35.
 - `orderbook_imbalance_ratio_threshold`: default 0.70.
 - `orderbook_standalone_min_severity`: default `high`.
+- `orderbook_notify_min_return_pct`: minimum short-window absolute price return required before a standalone order book event is reportable.
+- `orderbook_notify_volume_burst_ratio`: minimum volume/turnover burst required before a standalone order book event is reportable.
 - `min_ticks_short_window`: default 3.
 - `min_ticks_baseline_window`: default 20.
 - `severity_thresholds`: mapping for `warning`, `high`, and `critical`.
@@ -135,6 +146,8 @@ Validation:
 
 - Window durations must be positive.
 - Baseline window must be longer than impulse window.
+- Momentum reportability thresholds and order book standalone confirmation thresholds must be non-negative, and ratio-style order book pressure thresholds must be between 0 and 1.
+- Alert aggregation window must be non-negative.
 - Order book standalone severity must be `warning`, `high`, or `critical`.
 - Severity thresholds must be monotonic from `warning` to `critical`.
 - Cooldown must be non-negative.
@@ -161,14 +174,14 @@ Fields:
 - `feature_snapshot_ref`: optional reference to the feature snapshot that supplied measurements.
 - `reason`: short human-readable trigger explanation.
 - `status`: `detected`, `suppressed`, `notification_pending`, `notification_sent`, `notification_failed`, or `resolved`.
-- `suppression_key`: `(symbol, anomaly_type, direction)`.
+- `suppression_key`: notification suppression key. For aggregated alerts this is `(symbol, alert, direction)`; raw detector events may still carry detector-specific keys before aggregation.
 - `created_at`: local creation timestamp.
 
 Validation:
 
 - Measurement must include the detector-specific trigger value, such as price return, momentum z-score, cancellation ratio, added quantity, cancelled quantity, or imbalance ratio.
 - Suppressed events must reference the active cooldown decision.
-- Events eligible for notification must include all required notification fields.
+- Events eligible for notification must pass reportability filtering. Momentum-only events require sufficient actual impulse return, direct volume/turnover burst, or order book pressure accompanied by minimum volume/turnover activity. Standalone order book events require configured severity plus short-window price movement and volume/turnover burst confirmation.
 
 State transitions:
 
@@ -183,7 +196,7 @@ detected
 
 ## NotificationMessage
 
-Represents a Feishu alert generated from one or more anomaly events.
+Represents a Feishu alert generated from one or more reportable anomaly events after aggregation.
 
 Fields:
 
@@ -203,9 +216,28 @@ Fields:
 Validation:
 
 - `receive_id_type`, `receive_id`, `msg_type`, and `content` are required before send.
+- A notification may include multiple anomaly events for the same symbol when they occur within the configured alert aggregation window.
+- Aggregated content must list all included signal types and measurements in one readable message.
 - Feishu app ID, app secret, recipient type, recipient ID, retry attempts, retry backoff, and token refresh margin must be loaded from local YAML configuration and must not be printed in logs.
 - Retry attempts must not exceed configured max attempts.
 - Sent notifications require `feishu_message_id` when Feishu returns one.
+
+## AlertAggregationWindow
+
+Represents an in-memory grouping window for reportable events of the same symbol.
+
+Fields:
+
+- `symbol`: watchlist symbol being grouped.
+- `started_at`: trigger time of the first reportable event in the window.
+- `window_seconds`: aggregation duration from the active rule profile.
+- `events`: reportable `AnomalyEvent` objects collected before flush.
+
+Validation:
+
+- Only events for the same symbol may be grouped in one window.
+- When multiple events of the same anomaly type occur in one window, the most severe and latest event for that type is retained for notification content.
+- Flushed windows must produce at most one `NotificationMessage` before cooldown suppression.
 
 ## FeishuTokenCache
 

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build a Python 3.12 quantitative monitoring program that subscribes to tick data for a configurable stock watchlist through the GM SDK, detects intraday price jumps, abnormal short-term momentum, and sustained order book liquidity anomalies, deduplicates repeated alerts, and sends structured Feishu notifications through the message creation API using `tenant_access_token` authentication. The first version is alert-only: it will not place orders, recommend mandatory trades, or call GM trading APIs.
+Build a Python 3.12 quantitative monitoring program that subscribes to tick data for a configurable stock watchlist through the GM SDK, detects intraday price jumps, confirmed short-term momentum spikes, and sustained order book liquidity anomalies, classifies audit-only versus reportable events, aggregates reportable events per symbol over a configurable window, suppresses repeated symbol-direction alerts, and sends structured Feishu notifications through the message creation API using `tenant_access_token` authentication. The first version is alert-only: it will not place orders, recommend mandatory trades, or call GM trading APIs.
 
 ## Technical Context
 
@@ -22,7 +22,7 @@ Build a Python 3.12 quantitative monitoring program that subscribes to tick data
 
 **Project Type**: Single Python CLI/application package
 
-**Performance Goals**: Monitor 500 active symbols and make 95% of reportable anomalies visible to recipients within 5 seconds of accepting the triggering tick
+**Performance Goals**: Monitor 500 active symbols and make 95% of reportable anomaly groups visible to recipients within 5 seconds after their configured aggregation window closes
 
 **Constraints**: Do not hardcode GM token, Feishu app secret, Feishu recipient IDs, Feishu recipient type, retry settings, or token refresh settings in source; all runtime parameters are loaded from a local YAML config file; real credential-bearing config files must not be committed; keep notification retries bounded; prevent duplicate alert storms; avoid order placement and trading side effects
 
@@ -65,19 +65,28 @@ pyproject.toml
 src/
 └── tick_stream/
     ├── __init__.py
+    ├── alerts.py
     ├── cli.py
     ├── config.py
     ├── gm_client.py
     ├── health.py
+    ├── live_strategy.py
     ├── models.py
     ├── notifier.py
     ├── replay.py
+    ├── runner.py
+    ├── utils.py
     └── detection/
         ├── __init__.py
         ├── engine.py
+        ├── features.py
+        ├── filters.py
         ├── momentum.py
+        ├── normalization.py
         ├── orderbook.py
         ├── price.py
+        ├── reporting.py
+        ├── windows.py
         └── suppression.py
 
 tests/
@@ -91,9 +100,12 @@ tests/
 │   ├── test_replay_alert_flow.py
 │   └── test_notification_retry.py
 └── unit/
+    ├── test_feature_snapshot.py
+    ├── test_feishu_token.py
     ├── test_momentum_detector.py
     ├── test_orderbook_detector.py
     ├── test_price_detector.py
+    ├── test_reporting.py
     └── test_suppression.py
 ```
 
@@ -108,7 +120,9 @@ No constitution violations or extra complexity exceptions are required.
 Research output is recorded in [research.md](./research.md). Key decisions:
 
 - Use GM SDK event-driven tick subscription through Python 3.12.
-- Use deterministic anomaly detectors: short-window price jump, momentum z-score against a rolling baseline, and sustained order book liquidity anomalies based on large order additions, cancellations, and side imbalance.
+- Use deterministic anomaly detectors: short-window price jump, momentum z-score against a rolling baseline with actual-return and baseline-quality safeguards, and sustained order book liquidity anomalies based on large order additions, cancellations, and side imbalance.
+- Use reportability filtering before Feishu preparation: momentum-only events require sufficient actual return, direct volume/turnover burst, or order book pressure accompanied by minimum volume/turnover activity; standalone order book events require configured severity plus short-window price movement and volume/turnover burst confirmation.
+- Aggregate reportable events for the same symbol within a configurable window before sending one Feishu notification, then suppress repeated symbol-direction alerts within cooldown.
 - Compute a broader interpretable feature layer for replay calibration: realized volatility burst, order flow imbalance, queue imbalance, depth/spread stress, cancellation/addition pressure, turnover burst, and optional relative-strength residuals.
 - Keep advanced methods such as VPIN, CUSUM/SR, Bayesian online changepoint detection, Isolation Forest/LOF, online Half-Space Trees, and Matrix Profile in research/backtest mode until replay metrics justify live alerting.
 - Use Feishu `tenant_access_token` authentication, cache tokens until near expiry, and send structured `post` messages through `POST /open-apis/im/v1/messages`.

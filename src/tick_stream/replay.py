@@ -6,6 +6,7 @@ from typing import Any, Iterable
 import json
 
 from .audit import AuditWriter
+from .alerts import AlertWindowAggregator, apply_alert_suppression_key, attach_alert_window, split_reportable_events
 from .config import RuntimeConfig, load_config, rule_for_symbol
 from .detection.engine import DetectionEngine
 from .detection.suppression import SuppressionEngine
@@ -48,6 +49,31 @@ def run_replay(
     audit = AuditWriter(Path(config.audit["dir"]))
     notifier = notifier or FeishuNotifier(config.feishu)
     summary = ReplaySummary(dry_run_notify=dry_run_notify)
+    aggregator = AlertWindowAggregator()
+
+    def emit_groups(groups: list[list[AnomalyEvent]]) -> None:
+        for group in groups:
+            if not group:
+                continue
+            primary = apply_alert_suppression_key(group)
+            rule = rule_for_symbol(config, primary.symbol)
+            decision = suppression.decide(primary, rule.cooldown_seconds)
+            if decision.suppressed:
+                for event in group:
+                    event.status = EventStatus.SUPPRESSED
+                audit.write("suppression", {"events": group, "reason": decision.reason})
+                continue
+            for event in group:
+                event.status = EventStatus.NOTIFICATION_PENDING
+            message = notifier.build_message(group)
+            summary.notifications_prepared += 1
+            if not dry_run_notify:
+                sent = notifier.send(message)
+                if sent.delivery_status.value == "sent":
+                    summary.notifications_sent += 1
+                audit.write("notification", sent)
+            else:
+                audit.write("notification", message)
 
     for raw in ticks:
         summary.ticks_read += 1
@@ -59,27 +85,21 @@ def run_replay(
             audit.write("feature", feature)
             if feature.feature_availability.get("order_flow_imbalance") == "available":
                 summary.orderbook_detector_status = "available"
+            emit_groups(aggregator.flush_due(feature.event_time))
         reportable: list[AnomalyEvent] = []
         for event in events:
             summary.anomalies_detected += 1
-            rule = rule_for_symbol(config, event.symbol)
-            decision = suppression.decide(event, rule.cooldown_seconds)
-            if decision.suppressed:
-                audit.write("suppression", {"event": decision.event, "reason": decision.reason})
-            else:
-                event.status = EventStatus.NOTIFICATION_PENDING
-                reportable.append(event)
             audit.write("anomaly", event)
+        if events and feature is not None:
+            rule = rule_for_symbol(config, events[0].symbol)
+            reportable, not_reportable = split_reportable_events(events, feature, rule)
+            for event, reason in not_reportable:
+                audit.write("suppression", {"event": event, "reason": reason})
         if reportable:
-            message = notifier.build_message(reportable)
-            summary.notifications_prepared += 1
-            if not dry_run_notify:
-                sent = notifier.send(message)
-                if sent.delivery_status.value == "sent":
-                    summary.notifications_sent += 1
-                audit.write("notification", sent)
-            else:
-                audit.write("notification", message)
+            rule = rule_for_symbol(config, reportable[0].symbol)
+            attach_alert_window(reportable, rule.alert_aggregation_window_seconds)
+            emit_groups(aggregator.add(reportable, rule.alert_aggregation_window_seconds))
+    emit_groups(aggregator.flush_all())
     audit.write(
         "health",
         {

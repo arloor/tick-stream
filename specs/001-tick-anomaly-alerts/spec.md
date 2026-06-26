@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-25
 
-**Status**: Draft
+**Status**: Implemented and replay-calibrated
 
 **Input**: User description: "我需要写一个量化程序，订阅标的池的股票的 tick 数据，识别股价异动和动量异常；如果发现有异常则通过飞书的 openapi 发送结构化的通知"
 
@@ -21,7 +21,7 @@
 **Acceptance Scenarios**:
 
 1. **Given** 标的池包含股票 A 且 A 的连续 tick 价格在设定观察窗口内超过价格异动阈值，**When** 系统处理这些 tick，**Then** 系统记录一条价格异动异常事件，事件包含股票、触发时间、触发价格、变化幅度和异常等级。
-2. **Given** 标的池包含股票 B 且 B 的短期动量相对基准窗口明显增强，**When** 系统处理这些 tick，**Then** 系统记录一条动量异常事件，事件包含股票、触发时间、动量指标、参考窗口和异常等级。
+2. **Given** 标的池包含股票 B 且 B 的短期动量相对基准窗口明显增强，并且真实短窗涨跌幅达到最小动量位移要求，**When** 系统处理这些 tick，**Then** 系统记录一条动量异常事件，事件包含股票、触发时间、动量指标、短窗涨跌幅、参考窗口和异常等级。
 3. **Given** 标的池包含股票 C 且 C 的买卖盘挂单量在短时间内出现持续大额撤单或单侧挂单量异常堆积，**When** 系统处理这些 tick，**Then** 系统记录一条盘口流动性异常事件，事件包含方向、撤单或挂单变化量、观察窗口和异常等级。
 4. **Given** 某只股票不在当前标的池内，**When** 系统收到该股票的 tick 数据，**Then** 系统不会为该股票产生异常事件。
 
@@ -29,17 +29,18 @@
 
 ### User Story 2 - 发送结构化飞书通知 (Priority: P2)
 
-作为交易监控人员，我希望每个异常事件都能以结构化格式发送到指定飞书接收方，以便快速判断异常类型、严重程度、相关标的和下一步关注点。
+作为交易监控人员，我希望系统只把可报告的异常组合成结构化飞书告警，以便快速判断异常类型、严重程度、相关标的和下一步关注点，同时避免 momentum-only 或盘口抖动造成刷屏。
 
 **Why this priority**: 异常事件只有及时、清晰地送达使用者，才可以转化为行动。
 
-**Independent Test**: 使用一组已触发异常的事件样本，验证每条需要通知的异常都产生一条结构化通知，并且通知字段完整、可读、便于筛选。
+**Independent Test**: 使用一组已触发异常的事件样本，验证满足 reportable 规则的事件在同一标的聚合窗口内合并成一条结构化通知；未满足确认条件的动量事件和低等级盘口事件只写入审计，不发送飞书。
 
 **Acceptance Scenarios**:
 
 1. **Given** 系统产生一条高等级价格异动事件，**When** 通知发送流程执行，**Then** 飞书接收方收到一条结构化通知，至少包含异常类型、股票代码、股票名称、触发时间、最新价、变化幅度、异常等级和简短原因。
-2. **Given** 同一股票在短时间内重复触发相同异常，**When** 通知发送流程执行，**Then** 系统按照去重或聚合规则避免刷屏，同时保留最新异常状态。
-3. **Given** 通知发送失败，**When** 失败可恢复，**Then** 系统重试发送并记录最终发送状态。
+2. **Given** 同一股票在配置的告警聚合窗口内触发多个可报告异常，**When** 通知发送流程执行，**Then** 系统将这些信号合并成一条结构化通知，而不是按信号类型分别发送。
+3. **Given** 同一股票在短时间内重复触发同方向告警，**When** 通知发送流程执行，**Then** 系统按照标的级冷却规则避免刷屏，同时保留最新异常状态。
+4. **Given** 通知发送失败，**When** 失败可恢复，**Then** 系统重试发送并记录最终发送状态。
 
 ---
 
@@ -64,7 +65,7 @@
 - 标的池为空时，系统应保持运行状态并明确显示当前没有监控标的。
 - 行情源短暂中断或恢复后，系统应标识数据缺口，并避免把恢复后的首个 tick 直接误判为异常。
 - 股票停牌、涨跌停、集合竞价或开收盘附近的特殊行情阶段，应按业务规则降低误报。
-- 同一股票同时满足价格异动、动量异常和盘口异常时，系统应能合并或关联事件，避免使用者收到割裂的信息。
+- 同一股票在告警聚合窗口内同时或连续满足价格异动、动量异常和盘口异常时，系统应合并事件，避免使用者收到割裂的信息。
 - 通知接收方配置缺失或不可用时，系统应保留异常事件和发送失败状态，便于补发或排查。
 
 ## Requirements *(mandatory)*
@@ -75,28 +76,30 @@
 - **FR-002**: System MUST ingest tick data for all active watchlist symbols during configured monitoring periods.
 - **FR-003**: System MUST ignore or quarantine tick records that are outside the watchlist, malformed, duplicated, or older than the latest accepted tick for the same symbol.
 - **FR-004**: System MUST evaluate each monitored symbol against configurable price anomaly rules, including at minimum rapid price change over a short observation window.
-- **FR-005**: System MUST evaluate each monitored symbol against configurable momentum anomaly rules, including at minimum short-term momentum compared with a baseline window.
+- **FR-005**: System MUST evaluate each monitored symbol against configurable momentum anomaly rules, including short-term momentum compared with a baseline window, minimum actual impulse return, non-zero baseline sample checks, and zero-MAD safeguards.
 - **FR-006**: System MUST evaluate order book liquidity anomalies when盘口 fields are available, including at minimum short-window large order additions, cancellations, and buy/sell side imbalance.
 - **FR-007**: System MUST assign every detected anomaly an anomaly type, severity level, trigger reason, trigger timestamp, symbol, latest price, and relevant measurement values.
-- **FR-008**: System MUST allow盘口异常 to either create standalone alerts or increase severity of simultaneous price and momentum anomalies according to configurable rules.
-- **FR-009**: System MUST suppress, aggregate, or update repeated notifications for the same symbol and anomaly type within a configurable cooldown window.
-- **FR-010**: System MUST send structured notifications for reportable anomalies to configured Feishu recipients.
-- **FR-011**: System MUST track notification delivery status for each reportable anomaly, including pending, sent, failed, and retried states.
-- **FR-012**: System MUST retry recoverable notification failures according to a bounded retry policy and preserve failures for operator review.
-- **FR-013**: Users MUST be able to change watchlist membership, anomaly thresholds, observation windows, severity mapping, monitoring periods, and notification recipients without changing the anomaly event history.
-- **FR-014**: System MUST keep an audit trail of accepted tick processing outcomes, detected anomalies, suppressed duplicate alerts, and notification attempts for later review.
-- **FR-015**: System MUST expose enough runtime health information for users to know whether tick ingestion, anomaly detection, and notifications are operating normally.
-- **FR-016**: System MUST clearly separate monitoring and notification from trade execution; this feature MUST NOT place orders or recommend mandatory trading actions.
-- **FR-017**: System MUST keep sensitive notification credentials and recipient parameters out of source-controlled files and runtime logs.
+- **FR-008**: System MUST allow盘口异常 to create standalone alerts only when the configured severity, short-window price movement, and volume/turnover burst confirmation are all satisfied; otherwise盘口异常 remain audit-only or contextual evidence.
+- **FR-009**: System MUST classify detected anomalies as reportable or audit-only before notification preparation; momentum-only anomalies MUST require configured confirmation from sufficient actual impulse return, volume/turnover burst, or order book pressure accompanied by minimum volume/turnover activity.
+- **FR-010**: System MUST aggregate reportable events for the same symbol within a configurable alert aggregation window before preparing a Feishu notification.
+- **FR-011**: System MUST suppress, aggregate, or update repeated notifications for the same symbol and direction within a configurable cooldown window.
+- **FR-012**: System MUST send structured notifications for reportable anomaly groups to configured Feishu recipients.
+- **FR-013**: System MUST track notification delivery status for each reportable anomaly group, including pending, sent, failed, and retried states.
+- **FR-014**: System MUST retry recoverable notification failures according to a bounded retry policy and preserve failures for operator review.
+- **FR-015**: Users MUST be able to change watchlist membership, anomaly thresholds, observation windows, severity mapping, monitoring periods, aggregation windows, and notification recipients without changing the anomaly event history.
+- **FR-016**: System MUST keep an audit trail of accepted tick processing outcomes, detected anomalies, audit-only suppressions, cooldown suppressions, aggregation outcomes, and notification attempts for later review.
+- **FR-017**: System MUST expose enough runtime health information for users to know whether tick ingestion, anomaly detection, and notifications are operating normally.
+- **FR-018**: System MUST clearly separate monitoring and notification from trade execution; this feature MUST NOT place orders or recommend mandatory trading actions.
+- **FR-019**: System MUST keep sensitive notification credentials and recipient parameters out of source-controlled files and runtime logs.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Watchlist Symbol**: A stock selected for monitoring, including symbol, display name, market, active status, and optional per-symbol rule overrides.
 - **Tick Record**: A market data update for a symbol, including event time, received time, latest price, volume or turnover when available,盘口 fields when available, and source quality status.
 - **Order Book Snapshot**: The available bid/ask price and quantity levels carried by a tick, used to measure short-window additions, cancellations, and side imbalance.
-- **Anomaly Rule**: A business rule defining anomaly type, threshold, observation window, baseline window, severity mapping, active monitoring period, and whether盘口异常 can create standalone alerts or only enhance related alerts.
+- **Anomaly Rule**: A business rule defining anomaly type, threshold, observation window, baseline window, momentum confirmation requirements, alert aggregation window, severity mapping, active monitoring period, and whether盘口异常 can create standalone alerts or only enhance related alerts.
 - **Anomaly Event**: A detected abnormal market movement, including symbol, anomaly type, severity, trigger values, trigger reason, lifecycle status, and notification relationship.
-- **Notification Message**: A structured alert prepared for Feishu recipients, including content fields, recipient target, delivery status, retry count, and failure reason when applicable.
+- **Notification Message**: A structured alert prepared for Feishu recipients from one or more reportable anomaly events, including content fields, recipient target, delivery status, retry count, and failure reason when applicable.
 - **Monitoring Health State**: The current operating condition of ingestion, detection, and notification flows, including last successful data time and active error states.
 
 ## Success Criteria *(mandatory)*
@@ -104,11 +107,11 @@
 ### Measurable Outcomes
 
 - **SC-001**: During replay tests with labeled tick samples, at least 95% of labeled price anomaly scenarios are detected and at least 90% of normal scenarios do not produce false alerts.
-- **SC-002**: During replay tests with labeled tick samples, at least 90% of labeled momentum anomaly scenarios are detected and at least 90% of normal momentum scenarios do not produce false alerts.
+- **SC-002**: During replay tests with labeled tick samples, at least 90% of labeled momentum anomaly scenarios with sufficient actual price displacement are detected and at least 90% of normal or tiny-tick momentum scenarios do not produce reportable alerts.
 - **SC-003**: During replay tests with labeled盘口 samples, at least 85% of sustained order book liquidity anomaly scenarios are detected and at least 90% of normal盘口 fluctuations do not produce standalone alerts.
 - **SC-004**: For 500 actively monitored symbols under normal market data volume, 95% of reportable anomalies are visible to recipients within 5 seconds of the triggering tick being accepted.
-- **SC-005**: In a one-hour normal-market simulation, duplicate notifications for the same symbol and anomaly type are reduced by at least 80% compared with sending every raw trigger.
-- **SC-006**: 100% of generated notifications contain the required structured fields: anomaly type, symbol, symbol name when available, trigger time, latest price, measured price/momentum/order-book value, severity, and reason.
+- **SC-005**: In a one-hour normal-market simulation, duplicate notifications for the same symbol and direction are reduced by at least 80% compared with sending every raw trigger.
+- **SC-006**: 100% of generated notifications contain the required structured fields for each included signal: anomaly type, symbol, symbol name when available, trigger time, latest price, measured price/momentum/order-book value, severity, and reason.
 - **SC-007**: Operators can update the watchlist and anomaly rule settings and verify the changed monitoring behavior within 2 minutes.
 - **SC-008**: After a recoverable notification outage lasting up to 5 minutes, at least 99% of pending reportable anomaly notifications either send successfully after recovery or remain visible with a clear failed status.
 
@@ -116,7 +119,8 @@
 
 - The initial users are quantitative researchers, trading monitors, or operations staff who need intraday anomaly awareness rather than automated order execution.
 - The monitored market is stock tick data, and the first version focuses on symbols explicitly included in the watchlist.
-- Price anomaly, momentum anomaly, and盘口异常 thresholds will have sensible global defaults and may later be overridden per symbol or group.
+- Price anomaly, momentum anomaly, and盘口异常 thresholds will have configurable profile defaults grouped by board, market-cap bucket, and special states such as ST; they may later be overridden per symbol.
+- Momentum spike is treated as a candidate signal unless it has enough actual price displacement, direct volume/turnover burst confirmation, or order book pressure accompanied by minimum volume/turnover activity.
 - 盘口异常 is only evaluated when the tick feed exposes sufficient bid/ask price and quantity fields; otherwise this detector is reported as unavailable without blocking other detectors.
 - Feishu is the required notification destination for the first version; other notification channels are outside the initial scope.
 - Feishu credentials, recipient identifiers, and notification tuning parameters are supplied outside source-controlled files.

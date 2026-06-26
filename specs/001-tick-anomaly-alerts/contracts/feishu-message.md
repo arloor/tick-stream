@@ -33,7 +33,7 @@ Request body:
 {
   "receive_id": "oc_xxxxxxxxxxxxxxxxx",
   "msg_type": "post",
-  "content": "{\"zh_cn\":{\"title\":\"A股异动告警 | 贵州茅台 600519.SH | HIGH\",\"content\":[[{\"tag\":\"text\",\"text\":\"类型：价格异动 + 盘口增强\"}],[{\"tag\":\"text\",\"text\":\"方向：上涨\"}],[{\"tag\":\"text\",\"text\":\"触发时间：2026-06-25 10:30:00\"}],[{\"tag\":\"text\",\"text\":\"最新价：1688.00\"}],[{\"tag\":\"text\",\"text\":\"30秒涨跌幅：2.64%\"}],[{\"tag\":\"text\",\"text\":\"动量z-score：4.20\"}],[{\"tag\":\"text\",\"text\":\"盘口：卖一至卖五撤单比例42%，买盘占比76%\"}],[{\"tag\":\"text\",\"text\":\"原因：30秒价格变化超过2.5%，动量显著高于3分钟基准，盘口出现持续单侧流动性变化\"}]]}}"
+  "content": "{\"zh_cn\":{\"title\":\"A股异动告警 | SHSE.600104 | HIGH\",\"content\":[[{\"tag\":\"text\",\"text\":\"类型：price_jump+momentum_spike+orderbook_liquidity\"}],[{\"tag\":\"text\",\"text\":\"方向：up\"}],[{\"tag\":\"text\",\"text\":\"触发时间：2026-06-25T10:30:00+08:00\"}],[{\"tag\":\"text\",\"text\":\"最新价：10.36\"}],[{\"tag\":\"text\",\"text\":\"等级：high\"}],[{\"tag\":\"text\",\"text\":\"price_jump: {\\\"price_return_pct\\\": 2.64, \\\"window_seconds\\\": 30}\"}],[{\"tag\":\"text\",\"text\":\"momentum_spike: {\\\"momentum_z\\\": 6.2, \\\"impulse_return_pct\\\": 1.1}\"}],[{\"tag\":\"text\",\"text\":\"orderbook_liquidity: {\\\"cancel_add_ratio\\\": 0.66, \\\"queue_imbalance_ratio\\\": 0.91}\"}],[{\"tag\":\"text\",\"text\":\"原因：30秒窗口内价格、动量和盘口信号共振\"}]]}}"
 }
 ```
 
@@ -43,6 +43,8 @@ Content rules:
 - For `im/v1/messages` with `msg_type=post`, the serialized object uses language keys such as `zh_cn` at the top level.
 - Title must include anomaly category, symbol/name, and severity.
 - Body must include anomaly type, direction, trigger time, latest price, measured value, severity, and reason.
+- A single message may include multiple reportable anomaly events for the same symbol when they fall inside the configured alert aggregation window.
+- When multiple signal types are present, the body must include one measurement line per signal type.
 - When order book signals contributed to the alert, body must include cancellation/addition/imbalance measurements.
 - Message text must not include GM token, Feishu app secret, tenant token, recipient IDs, raw configuration dumps, or raw stack traces.
 

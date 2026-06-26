@@ -39,7 +39,7 @@ tick-stream replay --config config/watchlist.yml --ticks tests/fixtures/ticks/sa
 Behavior:
 
 - Reads JSONL tick fixtures.
-- Applies the same normalization, detection, suppression, and notification preparation flow used in live mode.
+- Applies the same normalization, detection, reportability filtering, alert aggregation, suppression, and notification preparation flow used in live mode.
 - Supports fixtures with or without order book depth fields; when depth fields are present, order book liquidity anomalies are evaluated.
 - With `--dry-run-notify`, validates Feishu payloads but does not send HTTP requests.
 
@@ -76,8 +76,22 @@ Behavior:
 - Validates configuration.
 - Initializes GM SDK connection.
 - Subscribes to active watchlist symbols.
+- Emits startup health JSON and exits without entering the GM SDK event loop.
+- Writes JSONL health audit records.
+
+## Command: run --blocking
+
+```bash
+tick-stream run --config config/watchlist.yml --blocking
+```
+
+Behavior:
+
+- Validates configuration.
+- Initializes GM SDK connection through the GM strategy runtime.
+- Subscribes to active watchlist symbols.
 - Processes live ticks until interrupted.
-- Sends reportable anomalies to Feishu.
+- Applies reportability filtering, alert aggregation, cooldown suppression, and Feishu sending for reportable anomaly groups.
 - Writes JSONL audit records.
 
 Exit codes:

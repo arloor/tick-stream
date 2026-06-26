@@ -24,6 +24,8 @@ def test_normalizes_gm_quotes_order_book():
             "created_at": "2026-06-25T10:00:00+08:00",
             "price": 100.0,
             "cum_volume": 10,
+            "last_volume": 300,
+            "last_amount": 30000.0,
             "quotes": [
                 {"bid_p": 99.9, "bid_v": 1000, "ask_p": 100.1, "ask_v": 900},
                 {"bid_p": 99.8, "bid_v": 800, "ask_p": 100.2, "ask_v": 700},
@@ -34,5 +36,7 @@ def test_normalizes_gm_quotes_order_book():
         {},
     )
     assert tick.quality_status == QualityStatus.ACCEPTED
+    assert tick.volume == 300
+    assert tick.turnover == 30000.0
     assert tick.order_book is not None
     assert tick.order_book.total_bid_quantity == 1800

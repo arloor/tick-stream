@@ -1,25 +1,28 @@
 gm:
-  token: "gm-token"
-  serv_addr: "127.0.0.1:7001"
-  strategy_id: "strategy-id"
+  token: gm-token
+  serv_addr: 127.0.0.1:7001
+  strategy_id: strategy-id
   mode: live
 feishu:
-  app_id: "cli_test"
-  app_secret: "secret-test"
+  app_id: cli_test
+  app_secret: secret-test
   receive_id_type: chat_id
-  receive_id: "oc_test"
+  receive_id: oc_test
   token_refresh_margin_seconds: 300
   max_attempts: 3
-  retry_backoff_seconds: [0, 0, 0]
+  retry_backoff_seconds:
+  - 0
+  - 0
+  - 0
 watchlist:
-  - symbol: SHSE.600519
-    name: "贵州茅台"
-    active: true
-    rule_profile: default
-  - symbol: SZSE.000001
-    name: "平安银行"
-    active: false
-    rule_profile: default
+- symbol: SHSE.600519
+  name: 贵州茅台
+  active: true
+  rule_profile: default
+- symbol: SZSE.000001
+  name: 平安银行
+  active: false
+  rule_profile: default
 rules:
   default:
     price_window_seconds: 30
@@ -29,17 +32,40 @@ rules:
     momentum_z_threshold: 3.0
     orderbook_window_seconds: 30
     orderbook_min_consecutive_ticks: 2
-    orderbook_cancel_ratio_threshold: 0.30
+    orderbook_cancel_ratio_threshold: 0.3
     orderbook_imbalance_ratio_threshold: 0.65
     orderbook_standalone_min_severity: high
+    orderbook_notify_min_return_pct: 0.5
+    orderbook_notify_volume_burst_ratio: 2.5
     min_ticks_short_window: 3
     min_ticks_baseline_window: 5
     cooldown_seconds: 180
     severity_thresholds:
-      warning: {price_return_pct: 1.0, momentum_z: 3.0, orderbook_cancel_ratio: 0.25, orderbook_imbalance_ratio: 0.60}
-      high: {price_return_pct: 2.0, momentum_z: 4.0, orderbook_cancel_ratio: 0.35, orderbook_imbalance_ratio: 0.70}
-      critical: {price_return_pct: 3.0, momentum_z: 5.0, orderbook_cancel_ratio: 0.50, orderbook_imbalance_ratio: 0.85}
+      warning:
+        price_return_pct: 1.0
+        momentum_z: 3.0
+        orderbook_cancel_ratio: 0.25
+        orderbook_imbalance_ratio: 0.6
+      high:
+        price_return_pct: 2.0
+        momentum_z: 4.0
+        orderbook_cancel_ratio: 0.35
+        orderbook_imbalance_ratio: 0.7
+      critical:
+        price_return_pct: 3.0
+        momentum_z: 5.0
+        orderbook_cancel_ratio: 0.5
+        orderbook_imbalance_ratio: 0.85
     ignored_sessions: []
+    momentum_min_return_pct: 0.45
+    momentum_min_nonzero_baseline_samples: 5
+    momentum_zero_mad_min_return_pct: 1.0
+    momentum_notify_min_return_pct: 1.1
+    momentum_notify_volume_burst_ratio: 2.2
+    momentum_notify_orderbook_min_volume_burst_ratio: 1.2
+    momentum_notify_orderbook_imbalance_ratio: 0.9
+    momentum_notify_cancel_add_ratio: 0.6
+    alert_aggregation_window_seconds: 30
 audit:
   dir: var/audit-test
   write_tick_summaries: true

@@ -75,8 +75,8 @@ def normalize_tick(
     symbol = str(raw.get("symbol") or "").strip()
     event_time = parse_dt(raw.get("event_time") or raw.get("created_at") or raw.get("time"))
     price = to_float(raw.get("last_price") or raw.get("price") or raw.get("current"))
-    volume = to_float(raw.get("volume"))
-    turnover = to_float(raw.get("turnover"))
+    volume = to_float(raw.get("volume") if raw.get("volume") is not None else raw.get("last_volume"))
+    turnover = to_float(raw.get("turnover") if raw.get("turnover") is not None else raw.get("last_amount"))
 
     base = {
         "symbol": symbol,
