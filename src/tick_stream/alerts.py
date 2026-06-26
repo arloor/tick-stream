@@ -29,7 +29,7 @@ def primary_event(events: list[AnomalyEvent]) -> AnomalyEvent:
 
 def apply_alert_suppression_key(events: list[AnomalyEvent]) -> AnomalyEvent:
     primary = primary_event(events)
-    primary.suppression_key = f"{primary.symbol}:alert:{primary.direction.value}"
+    primary.suppression_key = f"{primary.symbol}:alert:{primary.anomaly_type.value}:{primary.direction.value}"
     for event in events:
         event.suppression_key = primary.suppression_key
     return primary

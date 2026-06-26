@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from datetime import timedelta
 
 from tick_stream.config import load_config
-from tick_stream.alerts import AlertWindowAggregator, attach_alert_window
+from tick_stream.alerts import AlertWindowAggregator, apply_alert_suppression_key, attach_alert_window
 from tick_stream.detection.reporting import is_reportable
 from tick_stream.models import AnomalyEvent, AnomalyType, Direction, FeatureSnapshot, Severity
 
@@ -110,3 +110,10 @@ def test_alert_window_aggregates_same_symbol_events():
     flushed = aggregator.add([third], 30)
     assert len(flushed) == 1
     assert {event.anomaly_type for event in flushed[0]} == {AnomalyType.MOMENTUM_SPIKE, AnomalyType.ORDERBOOK_LIQUIDITY}
+
+
+def test_alert_suppression_key_includes_primary_anomaly_type():
+    now = datetime.now(timezone.utc)
+    event = AnomalyEvent("evt1", "SHSE.600519", AnomalyType.MOMENTUM_SPIKE, Direction.UP, Severity.HIGH, now, 100, {}, "test")
+    primary = apply_alert_suppression_key([event])
+    assert primary.suppression_key == "SHSE.600519:alert:momentum_spike:up"

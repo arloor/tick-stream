@@ -145,7 +145,8 @@
           "orderbook_standalone_min_severity",
           "orderbook_notify_min_return_pct",
           "orderbook_notify_volume_burst_ratio",
-          "cooldown_seconds"
+          "cooldown_seconds",
+          "opposite_direction_guard_seconds"
         ],
         "properties": {
           "price_window_seconds": {
@@ -271,6 +272,11 @@
             "type": "integer",
             "minimum": 0,
             "default": 180
+          },
+          "opposite_direction_guard_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 90
           },
           "severity_thresholds": {
             "type": "object",

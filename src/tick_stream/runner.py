@@ -91,7 +91,7 @@ class LiveRunner:
             rule = self.config.rules[self.config.symbol_map()[primary.symbol].rule_profile]
             for event in group:
                 event.status = EventStatus.NOTIFICATION_PENDING
-            decision = self.suppression.decide(primary, rule.cooldown_seconds)
+            decision = self.suppression.decide(primary, rule.cooldown_seconds, rule.opposite_direction_guard_seconds)
             if decision.suppressed:
                 for event in group:
                     event.status = EventStatus.SUPPRESSED

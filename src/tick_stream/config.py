@@ -101,6 +101,7 @@ def parse_config(raw: dict[str, Any]) -> RuntimeConfig:
             min_ticks_short_window=int(item.get("min_ticks_short_window", 3)),
             min_ticks_baseline_window=int(item.get("min_ticks_baseline_window", 20)),
             cooldown_seconds=int(item.get("cooldown_seconds", 180)),
+            opposite_direction_guard_seconds=int(item.get("opposite_direction_guard_seconds", 90)),
             severity_thresholds=_thresholds(item.get("severity_thresholds")),
             ignored_sessions=list(item.get("ignored_sessions", [])),
         )

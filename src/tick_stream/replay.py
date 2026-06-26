@@ -54,7 +54,7 @@ def run_replay(
                 continue
             primary = apply_alert_suppression_key(group)
             rule = rule_for_symbol(config, primary.symbol)
-            decision = suppression.decide(primary, rule.cooldown_seconds)
+            decision = suppression.decide(primary, rule.cooldown_seconds, rule.opposite_direction_guard_seconds)
             if decision.suppressed:
                 for event in group:
                     event.status = EventStatus.SUPPRESSED

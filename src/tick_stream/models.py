@@ -95,6 +95,7 @@ class AnomalyRuleSet:
     min_ticks_short_window: int = 3
     min_ticks_baseline_window: int = 20
     cooldown_seconds: int = 180
+    opposite_direction_guard_seconds: int = 90
     severity_thresholds: dict[str, SeverityThreshold] = field(default_factory=dict)
     ignored_sessions: list[dict[str, str]] = field(default_factory=list)
 

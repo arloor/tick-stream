@@ -36,6 +36,7 @@ rules:
     min_ticks_short_window: 3
     min_ticks_baseline_window: 5
     cooldown_seconds: 180
+    opposite_direction_guard_seconds: 120
     severity_thresholds:
       warning:
         price_return_pct: 5.0
